@@ -19,7 +19,7 @@
 const CONFIG = {
   OPEN_AT: '2026-10-26T09:00:00+07:00',
   CLOSE_AT: '2026-10-30T17:00:00+07:00',
-  CAPACITY: 45,
+  CAPACITY: 50,
   BUSES: [
     { id: 1, emoji: '😇', name: 'รถนักบุญ', tag: 'นอนยาวๆ ไม่มีใครรบกวน' },
     { id: 2, emoji: '🎤', name: 'รถร้องเล่น', tag: 'คาราโอเกะ เบาะตามอารมณ์' },
@@ -44,14 +44,8 @@ const busIdFromChoice_ = (text) => {
 const fmtThai_ = (iso) =>
   Utilities.formatDate(new Date(iso), 'Asia/Bangkok', "d MMM yyyy 'เวลา' HH:mm 'น.'");
 
-function setup() {
-  const props = PropertiesService.getScriptProperties();
-  if (props.getProperty('FORM_ID')) {
-    throw new Error('ติดตั้งไปแล้ว — ถ้าต้องการเริ่มใหม่ ให้ลบ Script Properties ก่อน');
-  }
-
-  const form = FormApp.create('จองรถบัส Company Trip 2026 🚌');
-  form.setDescription([
+function formDescription_() {
+  return [
     'เลือกรถบัสที่อยากนั่งไปทริป 20–21 พ.ย. 2569',
     `เปิดจอง: ${fmtThai_(CONFIG.OPEN_AT)}  ·  ปิดจอง: ${fmtThai_(CONFIG.CLOSE_AT)}`,
     '',
@@ -60,7 +54,28 @@ function setup() {
     '• เลือก 2 คัน — ถ้าคันอันดับ 1 เต็ม จะได้คันอันดับ 2 อัตโนมัติ',
     `• รถคันละ ${CONFIG.CAPACITY} ที่นั่ง`,
     '• 1 รหัสพนักงาน นับเฉพาะการจองครั้งแรก'
-  ].join('\n'));
+  ].join('\n');
+}
+
+/** รันหลังแก้ CONFIG (จำนวนที่นั่ง / วันเปิด-ปิด): อัปเดตคำอธิบายฟอร์ม + ตั้งเวลาใหม่ + ล้าง cache */
+function refreshForm() {
+  const form = getForm_();
+  form.setDescription(formDescription_());
+  form.setCustomClosedFormMessage(
+    `ยังไม่เปิดจอง หรือปิดจองแล้ว 🙏\nเปิดจอง ${fmtThai_(CONFIG.OPEN_AT)} – ปิด ${fmtThai_(CONFIG.CLOSE_AT)}`);
+  scheduleTriggers();
+  CacheService.getScriptCache().remove('payload');
+  Logger.log('อัปเดตฟอร์มแล้ว: ' + form.getDescription());
+}
+
+function setup() {
+  const props = PropertiesService.getScriptProperties();
+  if (props.getProperty('FORM_ID')) {
+    throw new Error('ติดตั้งไปแล้ว — ถ้าต้องการเริ่มใหม่ ให้ลบ Script Properties ก่อน');
+  }
+
+  const form = FormApp.create('จองรถบัส Company Trip 2026 🚌');
+  form.setDescription(formDescription_());
 
   form.addTextItem()
     .setTitle(TITLES.emp)
