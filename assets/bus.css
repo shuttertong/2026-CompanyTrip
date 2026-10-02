@@ -161,3 +161,21 @@
 .pax-list svg { width: 34px; height: 34px; flex: none; }
 .pax-list small { color: var(--ink-2); display: block; font-size: 12px; }
 @media (max-width: 480px) { .pax-list { grid-template-columns: 1fr; } }
+
+/* 3D VIP BUS */
+.b3-sec { padding-top: 56px; }
+.b3-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.b3-tabs button { border: 2px solid var(--c); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 6px 14px; font: 500 15px "Mitr"; cursor: pointer; }
+.b3-tabs button[aria-selected="true"] { background: var(--c); color: #fff; box-shadow: 0 6px 18px color-mix(in srgb, var(--c) 45%, transparent); }
+.b3-stage { position: relative; border-radius: 22px; overflow: hidden; background: radial-gradient(ellipse at 50% 20%, #1b2550, #070a18 70%); box-shadow: var(--shadow); aspect-ratio: 16 / 9; min-height: 340px; }
+.b3-canvas, .b3-canvas canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; display: block; touch-action: none; }
+.b3-loading { position: absolute; inset: 0; display: grid; place-items: center; color: #cdd6ff; font: 500 16px "Mitr"; pointer-events: none; transition: opacity .4s; }
+.b3-stage.ready .b3-loading { opacity: 0; }
+.b3-tip { position: absolute; pointer-events: none; background: rgba(10,12,24,.85); color: #fff; font: 500 14px "Mitr"; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+.b3-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-top: 10px; font-size: 15px; }
+.b3-caption { margin: 0; flex: 1 1 280px; }
+.b3-sample { font-size: 12px; background: var(--sun); color: #fff; border-radius: 999px; padding: 1px 8px; margin-left: 6px; }
+.b3-bar label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+@media (max-width: 640px) { .b3-stage { aspect-ratio: 4 / 5; } }
+
+.demo-link { text-align: center; font: 500 14px "Mitr"; color: var(--steel); }

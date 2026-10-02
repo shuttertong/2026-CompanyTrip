@@ -169,6 +169,8 @@
     $('#wait-list').innerHTML = wl.map((p) => `<span class="wait-chip">${avatar(p.emp)}${esc(p.nick)} · ${esc(p.emp)}</span>`).join('');
     renderStats();
     runFind();
+    window.__busData = { data, capacity };
+    window.dispatchEvent(new CustomEvent('busdata'));
   }
 
   function renderStats() {
@@ -210,6 +212,7 @@
         out.innerHTML = `🎉 <b>${esc(p.nick)} (${esc(p.emp)})</b> ได้นั่ง <b style="color:${b.color}">Bus ${b.id} ${b.emoji} ${esc(b.name)}</b> · ที่นั่งลำดับ ${i + 1} · ${p.rank === 1 ? 'ได้รถอันดับ 1 ⭐' : 'อันดับ 1 เต็ม ได้รถอันดับ 2 🔁'}`;
         const el = document.querySelector(`#bus-${b.id} .seat[data-emp="${CSS.escape(p.emp)}"]`);
         if (el) { el.classList.add('hit'); if (scroll) el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' }); }
+        window.dispatchEvent(new CustomEvent('busfind', { detail: { q: p.emp, busId: b.id } }));
         return;
       }
     }
@@ -327,9 +330,10 @@
     }, 70);
   }
 
-  if (CFG.endpoint) {
+  if (CFG.endpoint && !/[?&]demo\b/.test(location.search)) {
     loadLive();
     setInterval(loadLive, 20000);
+    $('#demo-link').hidden = false;
   } else {
     $('#demo-bar').hidden = false;
     $('#sim-play').addEventListener('click', simPlay);
