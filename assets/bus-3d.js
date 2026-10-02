@@ -33,7 +33,7 @@ scene.fog = new THREE.Fog(0x6a3a5a, 40, 140);
 const camera = new THREE.PerspectiveCamera(38, 16 / 9, 0.1, 200);
 camera.position.set(9.5, 7.2, 10.5);
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, 1.6, -1.5);
+controls.target.set(0, 2.3, -1.5);
 controls.enableDamping = true;
 controls.minDistance = 6; controls.maxDistance = 38;
 controls.maxPolarAngle = Math.PI * 0.48;
@@ -160,86 +160,158 @@ function setSky(mood) {
   scene.fog.color.set(night ? 0x0b1430 : 0x6a3a5a);
   ocean.material.color.set(night ? 0x0f3550 : 0x1b6f8a);
 }
-// ---------- the VIP bus ----------
-const L = 12.4, W = 2.6, FLOOR = 0.62, H = 3.1;
+// ---------- the VIP bus: Thai double-decker party bus ----------
+// FLOOR is the upper-deck reference: passengers ride upstairs (upper floor ≈ FLOOR + .66)
+const L = 12.4, W = 2.6, FLOOR = 1.48, H = 3.1;
+const UP = FLOOR + .64, ROOF = 4.05;
 const bus = new THREE.Group(); scene.add(bus);
 const busMats = {
-  paint: new THREE.MeshPhysicalMaterial({ color: 0x6c8cff, metalness: .55, roughness: .28, clearcoat: 1, clearcoatRoughness: .12 }),
+  paint: new THREE.MeshPhysicalMaterial({ color: 0x8a1530, metalness: .6, roughness: .25, clearcoat: 1, clearcoatRoughness: .08 }),
+  black: new THREE.MeshPhysicalMaterial({ color: 0x0c0d12, metalness: .7, roughness: .18, clearcoat: 1, clearcoatRoughness: .05 }),
   dark: new THREE.MeshStandardMaterial({ color: 0x111318, metalness: .3, roughness: .5 }),
-  glass: new THREE.MeshPhysicalMaterial({ color: 0x9fd4ff, metalness: 0, roughness: .05, transmission: .0, transparent: true, opacity: .16, side: THREE.DoubleSide, depthWrite: false }),
+  tint: new THREE.MeshPhysicalMaterial({ color: 0x0b0f18, metalness: .9, roughness: .06, clearcoat: 1 }),
+  glass: new THREE.MeshPhysicalMaterial({ color: 0x2a3b52, metalness: .2, roughness: .05, transparent: true, opacity: .32, side: THREE.DoubleSide, depthWrite: false }),
   floor: new THREE.MeshStandardMaterial({ color: 0x1d1a24, roughness: .6, metalness: .2 }),
   seat: new THREE.MeshStandardMaterial({ color: 0x3a1f2b, roughness: .55 }),
   seatTrim: new THREE.MeshStandardMaterial({ color: 0xd9b56b, metalness: .8, roughness: .3 }),
+  trim: new THREE.MeshStandardMaterial({ color: 0xff2d55, emissive: 0xff2d55, emissiveIntensity: .6, metalness: .5, roughness: .3 }),
   led: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x6c8cff, emissiveIntensity: 2.4 }),
   head: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff3c4, emissiveIntensity: 3 }),
   tail: new THREE.MeshStandardMaterial({ color: 0xff2a3d, emissive: 0xff1030, emissiveIntensity: 2.5 }),
+  redLamp: new THREE.MeshStandardMaterial({ color: 0xff2a2a, emissive: 0xff1a1a, emissiveIntensity: 2.2, roughness: .3 }),
+  chrome: new THREE.MeshStandardMaterial({ color: 0xe6ebf2, metalness: 1, roughness: .12 }),
+  gold: new THREE.MeshStandardMaterial({ color: 0xe0b44c, metalness: 1, roughness: .2 }),
+  horn: new THREE.MeshStandardMaterial({ color: 0xff7a3d, metalness: .9, roughness: .2 }),
   tire: new THREE.MeshStandardMaterial({ color: 0x15161a, roughness: .9 }),
-  rim: new THREE.MeshStandardMaterial({ color: 0xcfd6df, metalness: .9, roughness: .25 })
+  rim: new THREE.MeshStandardMaterial({ color: 0xcfd6df, metalness: .95, roughness: .15 })
 };
-// chassis (lower body, opaque)
-const lower = new THREE.Mesh(new THREE.BoxGeometry(L, 1.25, W), busMats.paint);
-lower.position.y = FLOOR + 0.0; lower.castShadow = true; bus.add(lower);
-const skirt = new THREE.Mesh(new THREE.BoxGeometry(L - .2, .18, W + .02), busMats.dark); skirt.position.y = FLOOR - .58; bus.add(skirt);
-// floor inside
+// lower body (glossy paint) + black skirt
+const lower = new THREE.Mesh(new THREE.BoxGeometry(L, UP - .32, W), busMats.paint);
+lower.position.y = (UP + .32) / 2; lower.castShadow = true; bus.add(lower);
+const skirt = new THREE.Mesh(new THREE.BoxGeometry(L - .3, .2, W + .02), busMats.black); skirt.position.y = .38; bus.add(skirt);
+// lower-deck tinted windows (driver cabin + side band)
+[-1, 1].forEach((sd) => {
+  const band = new THREE.Mesh(new THREE.PlaneGeometry(4.2, .72), busMats.tint);
+  band.position.set(L / 2 - 2.6, 1.55, sd * (W / 2 + .011)); if (sd < 0) band.rotation.y = Math.PI; bus.add(band);
+});
+// upper floor
 const floor = new THREE.Mesh(new THREE.BoxGeometry(L - .3, .06, W - .2), busMats.floor);
-floor.position.y = FLOOR + .64; floor.receiveShadow = true; bus.add(floor);
-// glass greenhouse (upper body, see-through) + slim pillars
-const glassBox = new THREE.Mesh(new THREE.BoxGeometry(L - .1, H - 1.25, W - .05), busMats.glass);
-glassBox.position.y = FLOOR + .62 + (H - 1.25) / 2; bus.add(glassBox);
-const roofFrame = new THREE.Mesh(new THREE.BoxGeometry(L, .12, W), busMats.paint);
-roofFrame.position.y = FLOOR + .62 + (H - 1.25); bus.add(roofFrame);
-roofFrame.material = busMats.paint;
+floor.position.y = UP; floor.receiveShadow = true; bus.add(floor);
+// upper deck: tinted see-through glass so the riders are visible
+const hidden = new THREE.MeshBasicMaterial({ visible: false });
+const glassBox = new THREE.Mesh(new THREE.BoxGeometry(L - .5, ROOF - UP, W - .06), [busMats.glass, busMats.glass, hidden, hidden, busMats.glass, busMats.glass]);
+glassBox.position.set(-.15, (ROOF + UP) / 2, 0); bus.add(glassBox);
 {
-  const pillarGeo = new THREE.BoxGeometry(.05, H - 1.25, .05);
-  for (let i = 0; i <= 8; i++) for (const s of [-1, 1]) {
-    const p = new THREE.Mesh(pillarGeo, busMats.dark);
-    p.position.set(-L / 2 + .05 + i * (L - .1) / 8, glassBox.position.y, s * (W / 2 - .02)); bus.add(p);
+  const pillarGeo = new THREE.BoxGeometry(.06, ROOF - UP, .06);
+  for (let i = 0; i <= 7; i++) for (const sd of [-1, 1]) {
+    const p = new THREE.Mesh(pillarGeo, busMats.black);
+    p.position.set(-L / 2 + .3 + i * (L - 1.2) / 7, glassBox.position.y, sd * (W / 2 - .03)); bus.add(p);
   }
 }
-// cut the roof center open (VIP sky-roof) so we can see inside from above
-roofFrame.scale.set(1, 1, 1);
-const roofHole = new THREE.Mesh(new THREE.BoxGeometry(L - 1.6, .14, W - .6), busMats.glass);
-roofHole.position.copy(roofFrame.position); bus.add(roofHole);
-roofFrame.visible = false;
-const roofRails = [-1, 1].map((s) => { const r = new THREE.Mesh(new THREE.BoxGeometry(L, .14, .3), busMats.paint); r.position.set(0, roofFrame.position.y, s * (W / 2 - .15)); bus.add(r); return r; });
-[-1, 1].forEach((s) => { const r = new THREE.Mesh(new THREE.BoxGeometry(.8, .14, W), busMats.paint); r.position.set(s * (L / 2 - .4), roofFrame.position.y, 0); bus.add(r); });
-// LED underglow + window LED line
-const ledStrip = new THREE.Mesh(new THREE.BoxGeometry(L - .4, .05, W + .06), busMats.led); ledStrip.position.y = FLOOR - .5; bus.add(ledStrip);
-const ledTop = new THREE.Mesh(new THREE.BoxGeometry(L - .2, .04, W + .04), busMats.led); ledTop.position.y = FLOOR + .64; bus.add(ledTop);
-// lights
-[-.85, .85].forEach((z) => {
-  const hl = new THREE.Mesh(new THREE.BoxGeometry(.06, .18, .45), busMats.head); hl.position.set(L / 2 + .01, FLOOR - .15, z); bus.add(hl);
-  const tl = new THREE.Mesh(new THREE.BoxGeometry(.06, .5, .2), busMats.tail); tl.position.set(-L / 2 - .01, FLOOR + .1, z * 1.2); bus.add(tl);
+// roof: black rails + glass sky-roof (VIP)
+[-1, 1].forEach((sd) => { const r = new THREE.Mesh(new THREE.BoxGeometry(L - .3, .16, .32), busMats.black); r.position.set(-.1, ROOF, sd * (W / 2 - .16)); bus.add(r); });
+const roofBack = new THREE.Mesh(new THREE.BoxGeometry(.7, .16, W), busMats.black); roofBack.position.set(-L / 2 + .45, ROOF, 0); bus.add(roofBack);
+const roofGlass = new THREE.Mesh(new THREE.PlaneGeometry(L - 1.6, W - .64), new THREE.MeshPhysicalMaterial({ color: 0x0d1420, metalness: .4, roughness: .05, transparent: true, opacity: .22, depthWrite: false, side: THREE.DoubleSide }));
+roofGlass.rotation.x = -Math.PI / 2; roofGlass.position.set(-.2, ROOF, 0); bus.add(roofGlass);
+// front: sloped one-piece black windscreen + visor "eyebrow"
+const wind = new THREE.Mesh(new THREE.BoxGeometry(.12, ROOF - .85, W - .08), busMats.tint);
+wind.position.set(L / 2 - .2, (ROOF + .85) / 2 + .05, 0); wind.rotation.z = .16; bus.add(wind);
+const visor = new THREE.Mesh(new THREE.BoxGeometry(1.0, .16, W + .04), busMats.black);
+visor.position.set(L / 2 - .2, ROOF + .02, 0); visor.rotation.z = -.12; bus.add(visor);
+const nose = new THREE.Mesh(new THREE.BoxGeometry(.5, .9, W), busMats.paint); nose.position.set(L / 2 + .05, .8, 0); bus.add(nose);
+// bumper with a row of round red lamps + chrome bar
+const bumper = new THREE.Mesh(new THREE.BoxGeometry(.32, .3, W + .06), busMats.paint); bumper.position.set(L / 2 + .36, .52, 0); bus.add(bumper);
+const chromeBar = new THREE.Mesh(new THREE.BoxGeometry(.08, .06, W + .1), busMats.chrome); chromeBar.position.set(L / 2 + .52, .36, 0); bus.add(chromeBar);
+{
+  const lampGeo = new THREE.CylinderGeometry(.095, .095, .06, 16); lampGeo.rotateZ(Math.PI / 2);
+  for (let i = 0; i < 11; i++) { const l = new THREE.Mesh(lampGeo, busMats.redLamp); l.position.set(L / 2 + .53, .54, -W / 2 + .2 + i * (W - .4) / 10); bus.add(l); }
+}
+// headlights (slanted LED) + mirror "rabbit ears"
+[-1, 1].forEach((sd) => {
+  const hl = new THREE.Mesh(new THREE.BoxGeometry(.06, .12, .55), busMats.head); hl.position.set(L / 2 + .31, .98, sd * .9); hl.rotation.x = sd * .25; bus.add(hl);
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(.08, .08, .55), busMats.paint); arm.position.set(L / 2 + .15, 3.1, sd * (W / 2 + .2)); arm.rotation.x = sd * .5; bus.add(arm);
+  const mirror = new THREE.Mesh(new THREE.BoxGeometry(.32, .9, .12), busMats.paint); mirror.position.set(L / 2 + .45, 2.6, sd * (W / 2 + .38)); mirror.rotation.z = .3; bus.add(mirror);
+  // trumpet horns on the front shoulders
+  for (const k of [0, 1]) {
+    const horn = new THREE.Mesh(new THREE.ConeGeometry(.09, .5, 14, 1, true), busMats.horn); horn.rotation.z = -Math.PI / 2;
+    horn.position.set(L / 2 - .5, 3.35 + k * .18, sd * (W / 2 + .06)); bus.add(horn);
+  }
+  const antenna = new THREE.Mesh(new THREE.CylinderGeometry(.01, .01, 1.1, 4), busMats.chrome); antenna.position.set(L / 2 - .9, ROOF + .55, sd * .7); antenna.rotation.z = -.25; bus.add(antenna);
 });
+// wave trim lines (signature Thai party-bus curves)
+function waveTube(y0, amp, freq, sd, r = .045) {
+  const pts = []; for (let i = 0; i <= 60; i++) { const x = -L / 2 + .2 + (L - .5) * i / 60; pts.push(new THREE.Vector3(x, y0 + Math.sin(x * freq) * amp, sd * (W / 2 + .03))); }
+  return new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 120, r, 8, false), busMats.trim);
+}
+[-1, 1].forEach((sd) => { bus.add(waveTube(UP + .05, .14, .75, sd)); bus.add(waveTube(ROOF - .18, .1, .55, sd, .035)); });
+// LED underglow
+const ledStrip = new THREE.Mesh(new THREE.BoxGeometry(L - .4, .05, W + .06), busMats.led); ledStrip.position.y = .3; bus.add(ledStrip);
+[-1, 1].forEach((sd) => { const e = new THREE.Mesh(new THREE.BoxGeometry(L - .6, .04, .04), busMats.led); e.position.set(-.1, ROOF + .09, sd * (W / 2 + .01)); bus.add(e); });
+// rear tail lights
+[-.9, .9].forEach((z) => { const tl = new THREE.Mesh(new THREE.BoxGeometry(.06, .6, .22), busMats.tail); tl.position.set(-L / 2 - .01, 1.0, z); bus.add(tl); });
 const headBeam = new THREE.SpotLight(0xfff1c8, 40, 30, .45, .5, 1.5);
-headBeam.position.set(L / 2, FLOOR, 0); headBeam.target.position.set(L / 2 + 10, 0, 0); bus.add(headBeam, headBeam.target);
-// wheels
+headBeam.position.set(L / 2 + .4, .9, 0); headBeam.target.position.set(L / 2 + 10, 0, 0); bus.add(headBeam, headBeam.target);
+// speaker tower by the rear door (pulses with the beat)
+const speakerRings = [];
+{
+  const tower = new THREE.Group(); tower.position.set(-L / 2 + 4.3, 1.15, W / 2 + .2);
+  tower.add(new THREE.Mesh(new THREE.BoxGeometry(.5, 1.6, .3), busMats.black));
+  const coneGeo = new THREE.CylinderGeometry(.16, .16, .05, 20); coneGeo.rotateX(Math.PI / 2);
+  const ringGeo = new THREE.TorusGeometry(.17, .025, 8, 24);
+  for (let i = 0; i < 4; i++) {
+    const cone = new THREE.Mesh(coneGeo, busMats.dark); cone.position.set(0, -.55 + i * .37, .16); tower.add(cone);
+    const ring = new THREE.Mesh(ringGeo, busMats.led); ring.position.set(0, -.55 + i * .37, .18); tower.add(ring); speakerRings.push(ring);
+  }
+  bus.add(tower);
+}
+// wheels: chrome rims with gold hubs (2 rear axles + front)
 const wheels = [];
 {
-  const tireGeo = new THREE.CylinderGeometry(.55, .55, .42, 24); tireGeo.rotateX(Math.PI / 2);
-  const rimGeo = new THREE.CylinderGeometry(.3, .3, .44, 12); rimGeo.rotateX(Math.PI / 2);
-  for (const x of [-L / 2 + 1.8, -L / 2 + 3.1, L / 2 - 2.2]) for (const z of [-W / 2 + .12, W / 2 - .12]) {
+  const tireGeo = new THREE.CylinderGeometry(.55, .55, .42, 28); tireGeo.rotateX(Math.PI / 2);
+  const rimGeo = new THREE.CylinderGeometry(.36, .36, .44, 20); rimGeo.rotateX(Math.PI / 2);
+  const hubGeo = new THREE.CylinderGeometry(.14, .14, .46, 12); hubGeo.rotateX(Math.PI / 2);
+  for (const x of [-L / 2 + 1.9, -L / 2 + 3.2, L / 2 - 2.4]) for (const z of [-W / 2 + .12, W / 2 - .12]) {
     const g = new THREE.Group(); g.position.set(x, .55, z);
     const t = new THREE.Mesh(tireGeo, busMats.tire); t.castShadow = true; g.add(t);
-    const r = new THREE.Mesh(rimGeo, busMats.rim); g.add(r);
-    const spoke = new THREE.Mesh(new THREE.BoxGeometry(.5, .06, .46), busMats.dark); g.add(spoke);
+    g.add(new THREE.Mesh(rimGeo, busMats.rim));
+    g.add(new THREE.Mesh(hubGeo, busMats.gold));
+    for (let k = 0; k < 5; k++) { const sp = new THREE.Mesh(new THREE.BoxGeometry(.07, .3, .47), busMats.chrome); sp.rotation.z = k * Math.PI * 2 / 5; g.add(sp); }
     bus.add(g); wheels.push(g);
   }
 }
-// side livery (canvas texture)
+// side livery: bright party-bus graphics (canvas texture)
 function liveryTexture(b) {
-  const c = document.createElement('canvas'); c.width = 1024; c.height = 128;
-  const x = c.getContext('2d');
-  x.clearRect(0, 0, 1024, 128);
-  x.fillStyle = 'rgba(255,255,255,.95)'; x.font = '700 64px Mitr, sans-serif'; x.textBaseline = 'middle';
-  x.fillText(`VIP BUS ${b.id}  ${b.name}`, 40, 66);
-  x.font = '600 34px Mitr, sans-serif'; x.fillStyle = '#ffd23f'; x.fillText('HSST TRIP 2026', 760, 66);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+  const c = document.createElement('canvas'); c.width = 2048; c.height = 300;
+  const x = c.getContext('2d'); const r = (n) => (hash(b.id + ':' + n) % 1000) / 1000;
+  x.clearRect(0, 0, 2048, 300);
+  const blobs = [b.color, '#ff3bd4', '#3bd5ff', '#ffd23f', '#7cff6b', '#b45cff'];
+  for (let i = 0; i < 22; i++) {
+    const cx = 120 + r(i) * 1800, cy = 60 + r(i + 50) * 220, rad = 60 + r(i + 90) * 130;
+    const g = x.createRadialGradient(cx, cy, 0, cx, cy, rad); g.addColorStop(0, blobs[i % blobs.length]); g.addColorStop(1, 'rgba(0,0,0,0)');
+    x.globalAlpha = .75; x.fillStyle = g; x.beginPath(); x.arc(cx, cy, rad, 0, Math.PI * 2); x.fill();
+  }
+  x.globalAlpha = 1;
+  // swooshes
+  x.lineCap = 'round';
+  for (let i = 0; i < 5; i++) {
+    x.strokeStyle = ['#ffffff', '#ffd23f', b.color, '#ff3bd4', '#3bd5ff'][i]; x.lineWidth = 10 - i;
+    x.beginPath(); x.moveTo(0, 230 - i * 22); x.bezierCurveTo(600, 120 - i * 20, 1200, 300 - i * 25, 2048, 150 - i * 15); x.stroke();
+  }
+  // sparkles
+  x.fillStyle = '#fff';
+  for (let i = 0; i < 40; i++) { const sx = r(i + 200) * 2048, sy = r(i + 300) * 300, ss = 3 + r(i + 400) * 7; x.beginPath(); x.moveTo(sx, sy - ss * 2); x.lineTo(sx + ss / 2, sy); x.lineTo(sx, sy + ss * 2); x.lineTo(sx - ss / 2, sy); x.fill(); }
+  // name
+  x.textBaseline = 'middle'; x.lineJoin = 'round';
+  x.font = '800 118px Mitr, sans-serif'; x.lineWidth = 16; x.strokeStyle = '#120a2a'; x.strokeText(`${b.name}`, 360, 150);
+  x.fillStyle = '#ffffff'; x.fillText(`${b.name}`, 360, 150);
+  x.font = '700 64px Mitr, sans-serif'; x.lineWidth = 10; x.strokeText(`VIP BUS ${b.id}`, 60, 150); x.fillStyle = '#ffd23f'; x.fillText(`VIP BUS ${b.id}`, 60, 150);
+  x.font = '600 46px Mitr, sans-serif'; x.lineWidth = 8; x.strokeText('HSST COMPANY TRIP 2026', 1420, 240); x.fillStyle = '#7cfffb'; x.fillText('HSST COMPANY TRIP 2026', 1420, 240);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
 }
 const liveryMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false });
-const liveryL = new THREE.Mesh(new THREE.PlaneGeometry(L - 1.2, 1.2 * (L - 1.2) / 8), liveryMat);
-liveryL.position.set(0, FLOOR + .05, W / 2 + .012); bus.add(liveryL);
-const liveryR = liveryL.clone(); liveryR.rotation.y = Math.PI; liveryR.position.z = -W / 2 - .012; bus.add(liveryR);
+const liveryL = new THREE.Mesh(new THREE.PlaneGeometry(L - .8, (L - .8) * 300 / 2048), liveryMat);
+liveryL.position.set(-.3, .98, W / 2 + .013); bus.add(liveryL);
+const liveryR = liveryL.clone(); liveryR.rotation.y = Math.PI; liveryR.position.z = -W / 2 - .013; bus.add(liveryR);
 
 // ---------- interior: seats ----------
 const seatGeo = new THREE.BoxGeometry(.42, .12, .42);
@@ -407,7 +479,8 @@ function sampleCrowd(b, n = 26) {
 
 function applyTheme(b) {
   const c = new THREE.Color(b.color);
-  busMats.paint.color.copy(c);
+  busMats.paint.color.copy(c).lerp(new THREE.Color(0x3a0614), .35);
+  busMats.trim.color.copy(c).offsetHSL(0, .1, .12); busMats.trim.emissive.copy(busMats.trim.color);
   busMats.led.emissive.copy(c);
   liveryMat.map?.dispose(); liveryMat.map = liveryTexture(b); liveryMat.needsUpdate = true;
   const party = b.mood === 'dance' || b.mood === 'party';
@@ -532,6 +605,7 @@ function animate() {
   }
   partyLights.forEach((l, i) => { if (l.visible) { l.color.setHSL(((t * .15) + i * .25) % 1, 1, .55); l.intensity = 4 + Math.sin(t * 8 + i) * 2.5; } });
   busMats.led.emissiveIntensity = currentBus.mood === 'sleep' ? 1.2 : 2 + Math.sin(t * 6) * .8;
+  speakerRings.forEach((r, i) => r.scale.setScalar(currentBus.mood === 'sleep' ? 1 : 1 + Math.max(0, Math.sin(t * 8.4 + i * .5)) * .18));
   // passengers
   const mood = currentBus.mood;
   crowd.children.forEach((c) => {

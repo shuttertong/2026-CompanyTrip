@@ -179,3 +179,5 @@
 @media (max-width: 640px) { .b3-stage { aspect-ratio: 4 / 5; } }
 
 .demo-link { text-align: center; font: 500 14px "Mitr"; color: var(--steel); }
+
+@media (max-width: 520px) { .cd-light { gap: 6px; } .cd-light div { width: auto; flex: 1 1 0; min-width: 0; } .cd-light b { font-size: 24px; } }
