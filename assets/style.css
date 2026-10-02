@@ -530,3 +530,10 @@ body::before {
   .hero h1 { font-size: clamp(44px, 14vw, 62px); }
   .sec-head { margin-bottom: 26px; }
 }
+
+/* BUS TEASER */
+.bus-teaser { padding-top: 0; }
+.teaser-card { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; padding: 28px; border-radius: var(--radius); background: linear-gradient(135deg, color-mix(in srgb, #8fd3ff 35%, var(--surface)), var(--surface)); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.teaser-card h2 { font-size: clamp(26px, 3.6vw, 36px); }
+.teaser-buses { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.teaser-buses span { border: 2px solid var(--c); color: var(--ink); background: var(--surface); padding: 4px 12px; border-radius: 999px; font: 500 14px "Mitr"; }

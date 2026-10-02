@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bus Booking 2026</title>
+<meta name="description" content="จองรถบัส Company Trip 2026 · เลือกรถ 2 คันที่ชอบ ใครจองก่อนได้ก่อน">
+<meta property="og:title" content="จองรถบัส · HSST Company Trip 2026">
+<meta property="og:description" content="5 คัน 5 สไตล์ — นักบุญ · ร้องเล่น · แดนซ์ · 888 · สุดเหวี่ยง">
+<meta name="theme-color" content="#0f2a44">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230f2a44'/><rect x='10' y='18' width='44' height='26' rx='6' fill='%23ee7b30'/><rect x='14' y='22' width='10' height='9' rx='2' fill='%23fff'/><rect x='27' y='22' width='10' height='9' rx='2' fill='%23fff'/><rect x='40' y='22' width='10' height='9' rx='2' fill='%23fff'/><circle cx='20' cy='46' r='5' fill='%23f7f3ea'/><circle cx='44' cy='46' r='5' fill='%23f7f3ea'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600&family=Cormorant+Garamond:wght@500;600;700&family=Mitr:wght@400;500;600&family=Noto+Serif+Thai:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=12">
+<link rel="stylesheet" href="assets/bus.css?v=1">
+</head>
+<body class="bus-page">
+
+<header class="nav" id="top">
+  <div class="nav-inner">
+    <a class="brand" href="index.html" aria-label="หน้าหลัก">
+      <svg viewBox="0 0 64 40" aria-hidden="true"><path d="M2 38 22 8l10 14 7-9 23 25z" fill="currentColor"/><circle cx="50" cy="8" r="5" fill="var(--sun)"/></svg>
+      <span>HSST <b>Trip 2026</b></span>
+    </a>
+    <button class="menu-btn" aria-expanded="false" aria-controls="menu" aria-label="เมนู"><span></span><span></span><span></span></button>
+    <nav id="menu">
+      <a href="index.html">← หน้าหลัก</a>
+      <a href="#rules">กติกา</a>
+      <a href="#buses">รถ 5 คัน</a>
+      <a href="#find">ค้นหาที่นั่ง</a>
+      <a href="#book" class="nav-cta">จองรถ</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- HERO: road convoy -->
+  <section class="bus-hero">
+    <div class="sky" aria-hidden="true">
+      <span class="cloud c1"></span><span class="cloud c2"></span><span class="cloud c3"></span>
+      <span class="sun-dot"></span>
+      <svg class="hills" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0 120 L0 70 Q150 10 300 60 T600 50 T900 65 T1200 40 L1200 120Z" fill="#7fb07a"/><path d="M0 120 L0 90 Q200 50 400 85 T800 80 T1200 75 L1200 120Z" fill="#5d9a5e"/></svg>
+    </div>
+    <div class="wrap hero-copy">
+      <p class="eyebrow">Bus Booking Game · Company Trip 2026</p>
+      <h1>เลือกรถสายของคุณ 🚌</h1>
+      <p class="hero-sub">5 คัน 5 สไตล์ · เลือก 2 คันที่ชอบ · <b>ใครจองก่อนได้ก่อน</b></p>
+    </div>
+    <div class="road" aria-hidden="true">
+      <div class="convoy" id="convoy"></div>
+      <div class="lane"></div>
+    </div>
+  </section>
+
+  <!-- STATUS / BOOK -->
+  <section class="wrap book" id="book">
+    <div class="book-card">
+      <div class="book-status">
+        <span class="pill" id="status-pill">กำลังโหลด…</span>
+        <h2 id="status-title">สถานะการจอง</h2>
+        <p id="status-sub" class="muted"></p>
+        <div class="countdown cd-light" id="bus-countdown" hidden>
+          <div><b data-cd="d">--</b><small>วัน</small></div>
+          <div><b data-cd="h">--</b><small>ชั่วโมง</small></div>
+          <div><b data-cd="m">--</b><small>นาที</small></div>
+          <div><b data-cd="s">--</b><small>วินาที</small></div>
+        </div>
+      </div>
+      <div class="book-cta">
+        <a class="btn btn-sun btn-lg" id="book-btn" href="#" target="_blank" rel="noopener" hidden>จองรถเลย ↗</a>
+        <div class="stats" id="stats"></div>
+      </div>
+    </div>
+    <div class="demo-bar" id="demo-bar" hidden>
+      <span class="demo-badge">โหมดจำลอง</span>
+      <span class="muted">ยังไม่เชื่อมต่อแบบฟอร์มจริง — ลองกดจำลองดูว่าระบบจัดที่นั่งอย่างไร</span>
+      <div class="demo-actions">
+        <button class="btn btn-sun" id="sim-play">▶ เริ่มจำลองการจอง</button>
+        <button class="btn btn-ghost-dark" id="sim-reset">รีเซ็ต</button>
+      </div>
+    </div>
+    <div class="ticker" id="ticker" aria-live="polite"></div>
+  </section>
+
+  <!-- RULES -->
+  <section class="wrap section rules-sec" id="rules">
+    <div class="sec-head">
+      <p class="kicker">How it works</p>
+      <h2>กติกาการจอง</h2>
+    </div>
+    <ol class="rules">
+      <li><span class="r-ic">⏰</span><div><b>เปิดจองตามเวลา</b><p id="rule-time">จองได้เฉพาะช่วงเวลาที่กำหนด ส่งก่อนเวลาเปิดไม่นับ</p></div></li>
+      <li><span class="r-ic">✌️</span><div><b>เลือกรถ 2 คันที่ชอบที่สุด</b><p>อันดับ 1 และอันดับ 2 (ห้ามซ้ำกัน)</p></div></li>
+      <li><span class="r-ic">🏁</span><div><b>ใครส่งก่อนได้ก่อน</b><p>เรียงตามเวลาที่กดส่งแบบฟอร์ม</p></div></li>
+      <li><span class="r-ic">🔁</span><div><b>อันดับ 1 เต็ม → ได้อันดับ 2 อัตโนมัติ</b><p>ถ้าเต็มทั้ง 2 คัน ทีมงานจะจัดที่นั่งให้</p></div></li>
+      <li><span class="r-ic">🪪</span><div><b>1 รหัสพนักงาน = 1 สิทธิ์</b><p>นับเฉพาะการจองครั้งแรก</p></div></li>
+      <li><span class="r-ic">💺</span><div><b>คันละ <span data-cap>45</span> ที่นั่ง</b><p>รวม 5 คัน</p></div></li>
+    </ol>
+  </section>
+
+  <!-- FIND -->
+  <section class="wrap find" id="find">
+    <label for="find-input"><b>🔎 ค้นหาที่นั่งของฉัน</b></label>
+    <div class="find-row">
+      <input id="find-input" type="search" inputmode="search" placeholder="รหัสพนักงาน 4 หลัก หรือ ชื่อเล่น" autocomplete="off">
+    </div>
+    <p id="find-result" class="find-result" aria-live="polite"></p>
+  </section>
+
+  <!-- BUSES -->
+  <section class="section buses-sec" id="buses">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="kicker">5 Buses</p>
+        <h2>ผังที่นั่งรถทั้ง 5 คัน</h2>
+        <p class="sub">แตะที่หน้าการ์ตูนเพื่อดูชื่อ · ⭐ = ได้รถอันดับ 1 · 🔁 = ได้รถอันดับ 2</p>
+      </div>
+    </div>
+    <div class="bus-row" id="bus-row"></div>
+    <div class="wrap">
+      <div class="waitlist" id="waitlist" hidden>
+        <h3>⏳ รอจัดสรรที่นั่ง <span id="wait-count"></span></h3>
+        <p class="muted">รถอันดับ 1 และ 2 เต็มแล้ว ทีมงานจะจัดที่นั่งให้</p>
+        <div class="wait-list" id="wait-list"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <p class="foot-brand">HSST Company Trip 2026 · One Team • One Journey</p>
+    <p id="updated-at"></p>
+    <a href="index.html">← กลับหน้าหลัก</a>
+  </div>
+</footer>
+
+<dialog class="pax-dialog" id="pax-dialog">
+  <form method="dialog"><button class="lb-close" aria-label="ปิด">×</button></form>
+  <div id="pax-body"></div>
+</dialog>
+
+<script>
+  /* ตั้งค่าระบบจองรถ
+     endpoint: URL ของ Apps Script Web app (apps-script/bus-booking.gs) — เว้นว่าง = โหมดจำลอง
+     formUrl:  ลิงก์ Google Form (ถ้า endpoint ส่ง formUrl มาให้ จะใช้ค่าจาก endpoint) */
+  window.BUS_CONFIG = {
+    endpoint: "",
+    formUrl: "",
+    openAt: "2026-10-26T09:00:00+07:00",
+    closeAt: "2026-10-30T17:00:00+07:00",
+    capacity: 45,
+    buses: [
+      { id: 1, emoji: "😇", name: "รถนักบุญ", tag: "นอนยาวๆ ไม่มีใครรบกวน", color: "#6c8cff", mood: "sleep" },
+      { id: 2, emoji: "🎤", name: "รถร้องเล่น", tag: "คาราโอเกะ เบาะตามอารมณ์", color: "#ff9f1c", mood: "sing" },
+      { id: 3, emoji: "🪩", name: "รถแดนซ์มันๆ", tag: "เปิดเพลงแดนซ์ทั้งทาง", color: "#a259ff", mood: "dance" },
+      { id: 4, emoji: "😂", name: "Bus 888", tag: "ฮาไม่หยุด เม้าท์ทั้งทาง", color: "#14b8a6", mood: "laugh" },
+      { id: 5, emoji: "🎉", name: "รถสุดเหวี่ยง", tag: "ปาร์ตี้สุดทาง", color: "#ff4f8b", mood: "party" }
+    ]
+  };
+</script>
+<script src="assets/bus.js?v=1"></script>
+</body>
+</html>
