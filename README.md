@@ -9,6 +9,7 @@
 - `index.html` — เนื้อหาทั้งหมด (กำหนดการ, ที่พัก, กิจกรรม, อาหารเช้า, ปาร์ตี้, เสื้อ, แบบสำรวจ)
 - `assets/style.css` — สไตล์ (รองรับมือถือ + dark mode)
 - `assets/app.js` — countdown, แท็บวัน, lightbox, เมนูมือถือ
+- `assets/luxury-scene.js` — Three.js hero scene สำหรับเอฟเฟกต์พรีเมียม
 - `assets/img/` — รูปภาพ
 
 ## ใส่ลิงก์แบบสำรวจ
