@@ -24,7 +24,7 @@ const CONFIG = {
     { id: 1, emoji: '😇', name: 'รถนักบุญ', tag: 'นอนยาวๆ ไม่มีใครรบกวน' },
     { id: 2, emoji: '🎤', name: 'รถร้องเล่น', tag: 'คาราโอเกะ เบาะตามอารมณ์' },
     { id: 3, emoji: '🪩', name: 'รถแดนซ์มันๆ', tag: 'เปิดเพลงแดนซ์ทั้งทาง' },
-    { id: 4, emoji: '😂', name: 'Bus 888', tag: 'ฮาไม่หยุด เม้าท์ทั้งทาง' },
+    { id: 4, emoji: '🃏', name: 'Bus 888', tag: 'วงไพ่ ลุ้นโชค สนุกทั้งทาง (ไม่เล่นเงินจริง)' },
     { id: 5, emoji: '🎉', name: 'รถสุดเหวี่ยง', tag: 'ปาร์ตี้สุดทาง' }
   ]
 };
@@ -61,8 +61,17 @@ function formDescription_() {
 function refreshForm() {
   const form = getForm_();
   form.setDescription(formDescription_());
-  form.setCustomClosedFormMessage(
-    `ยังไม่เปิดจอง หรือปิดจองแล้ว 🙏\nเปิดจอง ${fmtThai_(CONFIG.OPEN_AT)} – ปิด ${fmtThai_(CONFIG.CLOSE_AT)}`);
+  const choices = CONFIG.BUSES.map(busChoice_);
+  form.getItems(FormApp.ItemType.MULTIPLE_CHOICE).forEach((it) => {
+    const title = it.getTitle();
+    if (title === TITLES.c1 || title === TITLES.c2) it.asMultipleChoiceItem().setChoiceValues(choices);
+  });
+  try {
+    form.setCustomClosedFormMessage(
+      `ยังไม่เปิดจอง หรือปิดจองแล้ว 🙏\nเปิดจอง ${fmtThai_(CONFIG.OPEN_AT)} – ปิด ${fmtThai_(CONFIG.CLOSE_AT)}`);
+  } catch (e) {
+    Logger.log('ข้ามการแก้ข้อความตอนปิดฟอร์ม (Google ไม่ให้แก้หลังเผยแพร่): ' + e.message);
+  }
   scheduleTriggers();
   CacheService.getScriptCache().remove('payload');
   Logger.log('อัปเดตฟอร์มแล้ว: ' + form.getDescription());

@@ -126,6 +126,8 @@
 .bus-card[data-mood="dance"] .av svg { animation: hop .5s ease-in-out infinite alternate; animation-delay: var(--d, 0s); }
 @keyframes hop { to { transform: translateY(-3px) scale(1.04); } }
 .bus-card[data-mood="laugh"] .av svg { animation: giggle .35s ease-in-out infinite alternate; animation-delay: var(--d, 0s); }
+.bus-card[data-mood="luck"] .av svg { animation: lucky 3.2s ease-in-out infinite; animation-delay: var(--d, 0s); transform-origin: 50% 90%; }
+@keyframes lucky { 0%, 70% { transform: rotate(-4deg); } 78% { transform: translateY(-4px) scale(1.1) rotate(6deg); } 86% { transform: translateY(0) rotate(-2deg); } 100% { transform: rotate(-4deg); } }
 @keyframes giggle { to { transform: translateX(1px) rotate(3deg); } }
 .bus-card[data-mood="party"] .av svg { animation: party .9s ease-in-out infinite; animation-delay: var(--d, 0s); }
 @keyframes party { 25% { transform: translateY(-3px) rotate(-6deg); } 75% { transform: translateY(-3px) rotate(6deg); } }

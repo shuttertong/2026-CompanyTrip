@@ -388,6 +388,25 @@ const geo = {
   micHead: new THREE.SphereGeometry(.035, 10, 8),
   z: new THREE.PlaneGeometry(.22, .22)
 };
+function cardTexture(face) {
+  const c = document.createElement('canvas'); c.width = 64; c.height = 90; const x = c.getContext('2d');
+  x.fillStyle = '#fff'; x.beginPath(); x.roundRect(1, 1, 62, 88, 8); x.fill(); x.strokeStyle = '#333'; x.lineWidth = 2; x.stroke();
+  if (face) { x.fillStyle = face === '♠' || face === '♣' ? '#222' : '#e2445c'; x.font = '700 44px serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(face, 32, 48); }
+  else { x.fillStyle = '#b3203a'; x.fillRect(7, 7, 50, 76); x.strokeStyle = '#ffd23f'; x.strokeRect(12, 12, 40, 66); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const cardMats = ['♥', '♠', '♦', '♣'].map((f) => new THREE.MeshBasicMaterial({ map: cardTexture(f), side: THREE.DoubleSide }));
+const cardGeo = new THREE.PlaneGeometry(.11, .155);
+function diceTexture(n) {
+  const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0, 0, 64, 64); x.fillStyle = n === 1 ? '#e2445c' : '#222';
+  const P = { 1: [[32, 32]], 2: [[18, 18], [46, 46]], 3: [[16, 16], [32, 32], [48, 48]], 4: [[18, 18], [46, 18], [18, 46], [46, 46]], 5: [[18, 18], [46, 18], [32, 32], [18, 46], [46, 46]], 6: [[18, 16], [46, 16], [18, 32], [46, 32], [18, 48], [46, 48]] }[n];
+  P.forEach(([a, b]) => { x.beginPath(); x.arc(a, b, n === 1 ? 9 : 6, 0, Math.PI * 2); x.fill(); });
+  return new THREE.CanvasTexture(c);
+}
+const diceMats = [1, 6, 2, 5, 3, 4].map((n) => new THREE.MeshStandardMaterial({ map: diceTexture(n), roughness: .35 }));
+const dice = [];
+for (let i = 0; i < 5; i++) { const d = new THREE.Mesh(new THREE.BoxGeometry(.24, .24, .24), diceMats); d.position.set(-4 + i * 2, FLOOR + 1.9, 0); d.castShadow = true; bus.add(d); dice.push(d); }
 const matCache = new Map();
 const mat = (color, opts = {}) => {
   const key = color + JSON.stringify(opts);
@@ -456,6 +475,11 @@ function makeChibi(p, b, standing) {
     const mic = new THREE.Group(); mic.add(new THREE.Mesh(geo.mic, black)); const mh = new THREE.Mesh(geo.micHead, mat(0x9aa3ad, { metalness: .8, roughness: .3 })); mh.position.y = .09; mic.add(mh);
     mic.position.set(.06, -.28, 0); arms[1].add(mic); g.userData.mic = true;
   }
+  if (b.mood === 'luck') {
+    const fan = new THREE.Group();
+    for (let k = 0; k < 3; k++) { const cd = new THREE.Mesh(cardGeo, cardMats[(h + k) % 4]); cd.position.set(0, k * .012, (k - 1) * .05); cd.rotation.set(0, Math.PI / 2, (k - 1) * .3); fan.add(cd); }
+    fan.position.set(.24, .42, 0); fan.rotation.z = -.5; g.add(fan); g.userData.fan = fan;
+  }
   if (b.mood === 'party') { const hat = new THREE.Mesh(geo.hat, mat([0xff3b8d, 0xffd23f, 0x3bd5ff][h % 3])); hat.position.set(-.02, .36, 0); hat.rotation.z = .25; headG.add(hat); }
   if (sleepy) {
     const z = new THREE.Mesh(geo.z, new THREE.MeshBasicMaterial({ map: zTex, transparent: true, depthWrite: false }));
@@ -486,11 +510,12 @@ function applyTheme(b) {
   const party = b.mood === 'dance' || b.mood === 'party';
   disco.visible = party; lasers.forEach((l) => (l.visible = party));
   partyLights.forEach((l) => (l.visible = party || b.mood === 'sing'));
-  cabinLight.color.set(b.mood === 'sleep' ? 0x5d74c9 : b.mood === 'laugh' ? 0xffd9a0 : 0xffe7c2);
+  cabinLight.color.set(b.mood === 'sleep' ? 0x5d74c9 : b.mood === 'luck' ? 0xbfffd6 : 0xffe7c2);
+  dice.forEach((d) => (d.visible = b.mood === 'luck'));
   cabinLight.intensity = b.mood === 'sleep' ? 1.6 : party ? 1.2 : 3;
   cabinFill.forEach((l) => { l.intensity = b.mood === 'sleep' ? .8 : party ? 1 : 2.2; l.color.set(b.mood === 'sleep' ? 0x7d8fe0 : 0xfff0dc); });
   setSky(b.mood);
-  const screenText = { sleep: '😴 Good Night', sing: '🎤 ♪ ร้องเลย ♪', dance: '🪩 VIP DANCE', laugh: '😂 888888', party: '🎉 PARTY BUS' }[b.mood];
+  const screenText = { sleep: '😴 Good Night', sing: '🎤 ♪ ร้องเลย ♪', dance: '🪩 VIP DANCE', laugh: '😂 888888', luck: '🃏 888 ลุ้นโชค 🎲', party: '🎉 PARTY BUS' }[b.mood];
   drawScreen(screenText, b.color);
 }
 
@@ -606,6 +631,7 @@ function animate() {
   partyLights.forEach((l, i) => { if (l.visible) { l.color.setHSL(((t * .15) + i * .25) % 1, 1, .55); l.intensity = 4 + Math.sin(t * 8 + i) * 2.5; } });
   busMats.led.emissiveIntensity = currentBus.mood === 'sleep' ? 1.2 : 2 + Math.sin(t * 6) * .8;
   speakerRings.forEach((r, i) => r.scale.setScalar(currentBus.mood === 'sleep' ? 1 : 1 + Math.max(0, Math.sin(t * 8.4 + i * .5)) * .18));
+  dice.forEach((d, i) => { if (d.visible) { d.rotation.x += dt * (1.2 + i * .3); d.rotation.y += dt * (1.6 + i * .2); d.position.y = FLOOR + 1.95 + Math.sin(t * 2 + i) * .12; } });
   // passengers
   const mood = currentBus.mood;
   crowd.children.forEach((c) => {
@@ -627,6 +653,18 @@ function animate() {
       aL.rotation.x = 2.6 + Math.sin(beat) * .5; aR.rotation.x = -2.6 + Math.sin(beat + Math.PI) * .5;
       u.legs[0].rotation.x = Math.sin(beat) * .3; u.legs[1].rotation.x = -Math.sin(beat) * .3;
       u.headG.rotation.x = Math.sin(beat * 2) * .15;
+    } else if (mood === 'luck') {
+      const win = Math.sin(t * .55 + ph * 3.1) > .9;
+      if (win) {
+        c.position.y = base.y + Math.abs(Math.sin(t * 9)) * .14;
+        aL.rotation.set(2.8, 0, 0); aR.rotation.set(-2.8, 0, 0); u.headG.rotation.z = .15;
+        if (u.fan) u.fan.position.y = .95;
+      } else {
+        c.position.y = base.y;
+        aL.rotation.set(0, 0, 1.15); aR.rotation.set(0, 0, 1.15);
+        u.headG.rotation.z = -.22 + Math.sin(t * 1.3 + ph) * .04;
+        if (u.fan) u.fan.position.y = .42;
+      }
     } else if (mood === 'laugh') {
       c.position.y = base.y + Math.abs(Math.sin(t * 9 + ph)) * .04;
       u.headG.rotation.z = -.15 + Math.sin(t * 9 + ph) * .1;

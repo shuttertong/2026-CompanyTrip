@@ -77,7 +77,9 @@
         : `<g class="eyes"><circle cx="${ex1}" cy="${ey}" r="3.2" fill="${kind === 'panda' ? '#fff' : INK}"/><circle cx="${ex2}" cy="${ey}" r="3.2" fill="${kind === 'panda' ? '#fff' : INK}"/><circle cx="${ex1 + 1}" cy="${ey - 1.2}" r="1.1" fill="${kind === 'panda' ? INK : '#fff'}"/><circle cx="${ex2 + 1}" cy="${ey - 1.2}" r="1.1" fill="${kind === 'panda' ? INK : '#fff'}"/></g>`;
     if (mood === 'sing' && kind !== 'chick' && kind !== 'pig') mouth = `<ellipse cx="32" cy="45" rx="3" ry="3.6" fill="#e2445c"/>`;
     if (mood === 'laugh' && kind !== 'chick' && kind !== 'pig') mouth = `<path d="M26 42h12q-1 7-6 7t-6-7z" fill="#e2445c" stroke="${INK}" stroke-width="1.2" stroke-linejoin="round"/>`;
-    const prop = mood === 'party' ? `<path d="M26 16 32 1 38 16Z" fill="#ff4f8b" stroke="#fff" stroke-width="1"/><circle cx="32" cy="1.5" r="2.2" fill="#ffd23f"/>` : '';
+    if (mood === 'luck' && kind !== 'chick' && kind !== 'pig') mouth = `<path d="M27 42.5q5 5 10 0" fill="#fff" stroke="${INK}" stroke-width="1.5" stroke-linecap="round"/>`;
+    const prop = mood === 'party' ? `<path d="M26 16 32 1 38 16Z" fill="#ff4f8b" stroke="#fff" stroke-width="1"/><circle cx="32" cy="1.5" r="2.2" fill="#ffd23f"/>`
+      : mood === 'luck' ? `<g transform="rotate(14 50 50)"><rect x="42" y="40" width="14" height="19" rx="2.5" fill="#fff" stroke="#2b2d42" stroke-width="1.2"/><path d="M49 45l3 4.5-3 4.5-3-4.5z" fill="#e2445c"/></g>` : '';
 
     return `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="--d:-${delay}s" aria-hidden="true">${ears}<circle cx="32" cy="36" r="21" fill="${face}" stroke="${deep}" stroke-width="2"/>${extra}${eyes}<circle cx="19.5" cy="42" r="3.4" fill="#ff8fab" opacity=".55"/><circle cx="44.5" cy="42" r="3.4" fill="#ff8fab" opacity=".55"/>${mouth}${prop}</svg>`;
   }
