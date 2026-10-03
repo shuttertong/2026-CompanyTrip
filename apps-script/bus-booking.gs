@@ -301,8 +301,43 @@ function buildPayload_() {
   };
 }
 
+
+// ---------- สรุปการตอบแบบสำรวจหลัก (สำหรับหน้า survey-status.html) ----------
+// อ่านจากชีต "รายชื่อพนักงาน" ของไฟล์คำตอบแบบสำรวจ: D=Section, H=Nick Name, I=Check, J=เวลาตอบล่าสุด, R=สถานะการกรอก
+const SURVEY_SHEET_ID = '1xBILAH3otwEE_XllL2Lr1zExX724JEr2P_ywLraC6VE';
+const SURVEY_EMP_SHEET = 'รายชื่อพนักงาน';
+const SURVEY_DEADLINE = '2026-10-08T23:59:00+07:00';
+
+function surveySummary_() {
+  const cache = CacheService.getScriptCache();
+  const hit = cache.get('survey');
+  if (hit) return hit;
+  const sh = SpreadsheetApp.openById(SURVEY_SHEET_ID).getSheetByName(SURVEY_EMP_SHEET);
+  const rows = sh.getRange(2, 1, Math.max(sh.getLastRow() - 1, 1), 18).getDisplayValues();
+  const order = []; const map = {};
+  rows.forEach((r) => {
+    const code = String(r[1]).trim(); if (!code) return;
+    const section = String(r[3]).trim() || '-';
+    const status = String(r[17]);
+    const st = status.indexOf('✅') === 0 ? 'done' : status.indexOf('⚠') === 0 ? 'partial' : status.indexOf('❌') === 0 ? 'pending' : 'out';
+    if (!map[section]) { map[section] = { name: section, people: [] }; order.push(section); }
+    map[section].people.push({
+      nick: String(r[7]).trim().slice(0, 16),
+      st: st,
+      t: st === 'done' || st === 'partial' ? String(r[9]).trim() : '',
+      note: st === 'partial' ? status.replace(/^[^:]*:\s*/, '').slice(0, 80) : ''
+    });
+  });
+  const json = JSON.stringify({ updatedAt: new Date().toISOString(), deadline: SURVEY_DEADLINE, sections: order.map((k) => map[k]) });
+  cache.put('survey', json, 60);
+  return json;
+}
+
 /** Web app endpoint ที่หน้า bus.html ดึงไปแสดง (cache 15 วินาที) */
 function doGet(e) {
+  if (e && e.parameter && e.parameter.summary) {
+    return ContentService.createTextOutput(surveySummary_()).setMimeType(ContentService.MimeType.JSON);
+  }
   const emp = e && e.parameter && e.parameter.pic;
   if (emp) {
     let src = '';

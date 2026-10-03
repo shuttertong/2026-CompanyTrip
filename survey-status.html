@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Survey Status 2026</title>
+<meta name="description" content="สรุปการตอบแบบสำรวจ Company Trip 2026 แยกตามแผนก · ใครส่งแล้ว ส่งเมื่อไร">
+<meta property="og:title" content="สรุปการตอบแบบสำรวจ · HSST Company Trip 2026">
+<meta property="og:description" content="แผนกไหนส่งครบแล้ว ใครยังไม่ส่ง — ภายใน 8 ต.ค. 2569">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="only light">
+<meta name="theme-color" content="#0f2a44">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%2308231f'/><path d='M18 33l9 9 19-21' fill='none' stroke='%23d9b56b' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600&family=Cormorant+Garamond:wght@500;600;700&family=Mitr:wght@400;500;600&family=Noto+Serif+Thai:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=14">
+<link rel="stylesheet" href="assets/summary.css?v=1">
+</head>
+<body class="sum-page">
+
+<header class="nav" id="top">
+  <div class="nav-inner">
+    <a class="brand" href="index.html" aria-label="หน้าหลัก">
+      <svg viewBox="0 0 64 40" aria-hidden="true"><path d="M2 38 22 8l10 14 7-9 23 25z" fill="currentColor"/><circle cx="50" cy="8" r="5" fill="var(--sun)"/></svg>
+      <span>HSST <b>Trip 2026</b></span>
+    </a>
+    <button class="menu-btn" aria-expanded="false" aria-controls="menu" aria-label="เมนู"><span></span><span></span><span></span></button>
+    <nav id="menu">
+      <a href="index.html">← หน้าหลัก</a>
+      <a href="#sections">แยกตามแผนก</a>
+      <a href="#latest">ส่งล่าสุด</a>
+      <a href="index.html#survey" class="nav-cta">ทำแบบสำรวจ</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="sum-hero">
+    <div class="wrap">
+      <p class="eyebrow">Survey Status · Company Trip 2026</p>
+      <h1>ใครส่งแบบสำรวจแล้วบ้าง?</h1>
+      <p class="sum-sub">ปิดรับ <b>วันพฤหัสบดีที่ 8 ตุลาคม 2569</b> · <span id="sum-left"></span></p>
+
+      <div class="sum-total" id="sum-total" aria-live="polite">
+        <div class="ring" id="sum-ring"><b id="sum-pct">–</b><span>ส่งแล้ว</span></div>
+        <dl class="sum-stats">
+          <div><dt>ต้องตอบ</dt><dd id="st-need">–</dd></div>
+          <div class="ok"><dt>ส่งครบแล้ว</dt><dd id="st-done">–</dd></div>
+          <div class="warn"><dt>ยังไม่ครบ</dt><dd id="st-partial">–</dd></div>
+          <div class="bad"><dt>ยังไม่ส่ง</dt><dd id="st-pending">–</dd></div>
+        </dl>
+      </div>
+      <p class="sum-note" id="sum-state">กำลังโหลดข้อมูล…</p>
+    </div>
+  </section>
+
+  <section class="wrap sum-tools" id="sections">
+    <div class="chips" role="group" aria-label="ตัวกรอง">
+      <button class="chip on" data-f="all">ทั้งหมด</button>
+      <button class="chip" data-f="done">✅ ส่งแล้ว</button>
+      <button class="chip" data-f="pending">⏳ ยังไม่ส่ง</button>
+    </div>
+    <input type="search" id="sum-q" placeholder="ค้นหาชื่อเล่น / แผนก" aria-label="ค้นหาชื่อเล่นหรือแผนก">
+    <select id="sum-sort" aria-label="เรียงลำดับ">
+      <option value="pct">เรียง: % ส่งมากสุด</option>
+      <option value="left">เรียง: ค้างมากสุด</option>
+      <option value="name">เรียง: ชื่อแผนก</option>
+    </select>
+  </section>
+
+  <section class="wrap sum-grid" id="sum-grid"></section>
+
+  <section class="wrap sum-latest" id="latest">
+    <h2>ส่งล่าสุด</h2>
+    <ol id="sum-recent" class="recent"></ol>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <p class="foot-brand">HSST Company Trip 2026 · One Team • One Journey</p>
+    <p id="updated-at"></p>
+    <a href="index.html">← กลับหน้าหลัก</a>
+  </div>
+</footer>
+
+<script>
+  /* endpoint: Apps Script Web app ตัวเดียวกับระบบจองรถ (apps-script/bus-booking.gs) เรียกด้วย ?summary=1
+     เปิดหน้าแบบ survey-status.html?demo เพื่อดูข้อมูลจำลอง */
+  window.SUMMARY_CONFIG = {
+    endpoint: "https://script.google.com/macros/s/AKfycbzVG3QwkIWD1VhZrsIerMM-ofFYDAVeKoBqy7kvgop4vRZsCTnot_FJrQ3sJFKmLgeCfA/exec",
+    deadline: "2026-10-08T23:59:00+07:00"
+  };
+</script>
+<script src="assets/summary.js?v=1"></script>
+</body>
+</html>
