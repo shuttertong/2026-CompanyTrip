@@ -20,30 +20,9 @@
   --radius: 16px;
   --shadow: 0 1px 1px rgba(32, 24, 12, .06), 0 18px 42px rgba(32, 24, 12, .12);
   --shadow-luxe: 0 16px 36px rgba(6, 35, 31, .12), 0 2px 0 rgba(255,255,255,.55) inset;
-  color-scheme: light;
+  color-scheme: only light;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0d1620;
-    --bg-band: #111d2a;
-    --surface: #172433;
-    --ink: #eef2f6;
-    --ink-2: #a6b3c1;
-    --line: #26384b;
-    --navy: #0a1a2a;
-    --steel: #7fa8d0;
-    --sun: #f58a42;
-    --water: #3fc0c5;
-    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.3);
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0d1620; --bg-band: #111d2a; --surface: #172433; --ink: #eef2f6; --ink-2: #a6b3c1;
-  --line: #26384b; --navy: #0a1a2a; --steel: #7fa8d0; --sun: #f58a42; --water: #3fc0c5;
-  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.3);
-  color-scheme: dark;
-}
+/* The design is light-only: cards use fixed cream surfaces, so a dark token set made headings unreadable on phones in dark mode. */
 
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 72px; }
@@ -203,8 +182,6 @@ nav a.nav-cta { background: linear-gradient(135deg, #f1d58b, #b88743 58%, #8f5f2
 .tabs button small { display: block; font-size: 12px; letter-spacing: .06em; }
 .tabs button b { font: 500 17px "Mitr"; }
 .tabs button[aria-selected="true"] { background: var(--navy); color: #fff; }
-:root[data-theme="dark"] .tabs button[aria-selected="true"] { background: var(--steel); color: #0d1620; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tabs button[aria-selected="true"] { background: var(--steel); color: #0d1620; } }
 
 .timeline { list-style: none; margin: 0; padding: 0; position: relative; }
 .timeline::before { content: ""; position: absolute; left: 86px; top: 8px; bottom: 8px; width: 2px; background: var(--line); }
