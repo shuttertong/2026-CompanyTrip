@@ -291,9 +291,9 @@ function liveryTexture(b) {
     x.font = '700 70px serif'; x.textBaseline = 'middle'; x.textAlign = 'center';
     ['♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣', '♠', '♥'].forEach((sym, i) => { x.fillStyle = i % 2 ? '#ff4d6d' : '#f4f1e8'; x.globalAlpha = .35; x.fillText(sym, 120 + i * 200, 70 + (i % 3) * 80); });
     x.globalAlpha = 1; x.textAlign = 'left';
-    x.font = '800 120px Mitr, sans-serif'; x.lineWidth = 14; x.strokeStyle = '#2a1600'; x.strokeText('888 CASINO', 360, 150);
+    x.font = '800 120px Mitr, sans-serif'; x.lineWidth = 14; x.strokeStyle = '#2a1600'; x.strokeText('888', 420, 150);
     const gold = x.createLinearGradient(0, 90, 0, 210); gold.addColorStop(0, '#fff3b0'); gold.addColorStop(.5, '#e0b44c'); gold.addColorStop(1, '#9a6b14');
-    x.fillStyle = gold; x.fillText('888 CASINO', 360, 150);
+    x.fillStyle = gold; x.fillText('888', 420, 150);
     x.font = '700 60px Mitr, sans-serif'; x.lineWidth = 10; x.strokeText(`VIP BUS ${b.id}`, 60, 150); x.fillStyle = '#ffffff'; x.fillText(`VIP BUS ${b.id}`, 60, 150);
     x.font = '600 40px Mitr, sans-serif'; x.fillStyle = '#e0b44c'; x.fillText('LUCKY · FOR FUN ONLY', 1180, 236);
     for (let i = 0; i < 6; i++) { const cx = 1500 + i * 85, cy = 110; x.fillStyle = ['#e2445c', '#2b6cff', '#111', '#1aa36f', '#e0b44c', '#7a3cff'][i]; x.beginPath(); x.arc(cx, cy, 34, 0, Math.PI * 2); x.fill(); x.strokeStyle = '#fff'; x.lineWidth = 6; x.setLineDash([10, 8]); x.stroke(); x.setLineDash([]); }
@@ -462,7 +462,7 @@ function neonTexture() {
   x.fillStyle = '#120a06'; x.beginPath(); x.roundRect(8, 8, 1008, 240, 40); x.fill();
   x.strokeStyle = '#e0b44c'; x.lineWidth = 10; x.stroke();
   x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = '800 150px Mitr, sans-serif';
-  x.shadowColor = '#ff2d55'; x.shadowBlur = 40; x.fillStyle = '#ffd23f'; x.fillText('888 CASINO', 512, 132);
+  x.shadowColor = '#ff2d55'; x.shadowBlur = 40; x.fillStyle = '#ffd23f'; x.fillText('888', 512, 132);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 const neon = new THREE.Mesh(new THREE.PlaneGeometry(3.6, .9), new THREE.MeshBasicMaterial({ map: neonTexture(), transparent: true, side: THREE.DoubleSide }));
@@ -618,7 +618,7 @@ function applyTheme(b) {
   cabinLight.intensity = b.mood === 'sleep' ? 1.6 : party ? 1.2 : 3;
   cabinFill.forEach((l) => { l.intensity = b.mood === 'sleep' ? .8 : party ? 1 : 2.2; l.color.set(b.mood === 'sleep' ? 0x7d8fe0 : 0xfff0dc); });
   setSky(b.mood);
-  const screenText = { sleep: '😴 Good Night', sing: '🎤 ♪ ร้องเลย ♪', dance: '🪩 VIP DANCE', laugh: '😂 888888', luck: '🎰 888 CASINO 🎲', party: '🎉 PARTY BUS' }[b.mood];
+  const screenText = { sleep: '😴 Good Night', sing: '🎤 ♪ ร้องเลย ♪', dance: '🪩 VIP DANCE', laugh: '😂 888888', luck: '🎰 888 🎲', party: '🎉 PARTY BUS' }[b.mood];
   drawScreen(screenText, b.color);
 }
 
