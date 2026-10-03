@@ -14,6 +14,7 @@
  *  3. Deploy → New deployment → Web app
  *     Execute as: Me · Who has access: Anyone → Deploy → คัดลอก URL
  *  4. ใส่ URL ใน bus.html ตรง BUS_CONFIG.endpoint
+ *  5. (ถ้าต้องการชื่อ/แผนก/รูปบนรถ) รัน setupEmployeeSheet แล้วกรอกชีต Employees
  */
 
 const CONFIG = {
@@ -133,6 +134,115 @@ function getForm_() {
   return FormApp.openById(PropertiesService.getScriptProperties().getProperty('FORM_ID'));
 }
 
+
+// ---------- ข้อมูลพนักงาน (ชีตที่ 2) สำหรับแสดงชื่อ แผนก และรูปบนรถในแอนิเมชัน ----------
+const EMP_SHEET = 'Employees';
+const GUIDE_SHEET = 'คู่มือการกรอก';
+const EMP_HEADERS = ['emp_id', 'short_name', 'short_section', 'emp_pic_path'];
+const SECTIONS = ['Personnel&GA', 'Account', 'Import & Logistic', 'IT', 'SALES-1', 'SALES-2', 'SALES-3', 'SALES-4', 'SALES-5', 'PC', 'Quality', 'Rework/Repack', 'Safety', 'FACTORY DEPT./PD SUPPORT', 'Slitter-1', 'Slitter-2', 'Slitter-3', 'M1', 'M2', 'M3', 'M4', 'SHEAR', 'Delivery-1', 'Delivery-2', 'SKID', 'MS1', 'L1', 'Maintenance', 'PD Support'];
+
+/** สร้างชีต Employees (ชีตที่ 2) + ชีตคู่มือ ใน Google Sheet เดียวกับคำตอบ (รันซ้ำได้ ไม่ลบข้อมูลเดิม) */
+function setupEmployeeSheet() {
+  const ss = SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('SHEET_ID'));
+  let sh = ss.getSheetByName(EMP_SHEET);
+  if (!sh) sh = ss.insertSheet(EMP_SHEET, 1);
+  sh.getRange(1, 1, 1, EMP_HEADERS.length).setValues([EMP_HEADERS])
+    .setFontWeight('bold').setBackground('#0f2a44').setFontColor('#ffffff').setHorizontalAlignment('center');
+  sh.setFrozenRows(1);
+  const notes = [
+    'รหัสพนักงาน 4 หลัก ต้องตรงกับที่กรอกในฟอร์มจองรถ (เช่น 0123, 2034)',
+    'ชื่อเล่นสั้น ๆ ที่จะแสดงบนรถ (ไม่เกิน 10 ตัวอักษร) เว้นว่าง = ใช้ชื่อเล่นจากฟอร์ม',
+    'ชื่อแผนกแบบย่อ เลือกจากรายการ หรือพิมพ์เองได้ (เช่น IT, ACC, SALES-1)',
+    'ลิงก์รูปหน้าตรง: ลิงก์แชร์ Google Drive / File ID / ลิงก์รูปสาธารณะ (.jpg .png) เว้นว่าง = ใช้ตัวการ์ตูน'
+  ];
+  notes.forEach((n, i) => sh.getRange(1, i + 1).setNote(n));
+  const maxRows = Math.max(sh.getMaxRows(), 400);
+  if (sh.getMaxRows() < maxRows) sh.insertRowsAfter(sh.getMaxRows(), maxRows - sh.getMaxRows());
+  sh.getRange(2, 1, maxRows - 1, 1).setNumberFormat('@');
+  sh.getRange(2, 1, maxRows - 1, 1).setDataValidation(SpreadsheetApp.newDataValidation()
+    .requireFormulaSatisfied('=OR(A2="",REGEXMATCH(TO_TEXT(A2),"^[0-9]{4}$"))')
+    .setHelpText('กรอกรหัสพนักงาน 4 หลัก').setAllowInvalid(false).build());
+  sh.getRange(2, 3, maxRows - 1, 1).setDataValidation(SpreadsheetApp.newDataValidation()
+    .requireValueInList(SECTIONS, true).setAllowInvalid(true).build());
+  [90, 140, 200, 420].forEach((w, i) => sh.setColumnWidth(i + 1, w));
+  sh.getRange('A1:D1').setBorder(true, true, true, true, true, true);
+
+  let g = ss.getSheetByName(GUIDE_SHEET);
+  if (!g) g = ss.insertSheet(GUIDE_SHEET, 2);
+  g.clear();
+  const rows = [
+    ['คู่มือการกรอกชีต Employees (ใช้แสดงชื่อ แผนก และรูปบนรถบัสในแอนิเมชัน)', ''],
+    ['', ''],
+    ['คอลัมน์', 'วิธีกรอก'],
+    ['emp_id', 'รหัสพนักงาน 4 หลัก ตรงกับที่พนักงานกรอกในฟอร์มจองรถ (คอลัมน์นี้เก็บเป็นข้อความ จึงพิมพ์ 0 นำหน้าได้)'],
+    ['short_name', 'ชื่อเล่นที่จะแสดงเหนือหัวตัวการ์ตูน ไม่เกิน 10 ตัวอักษร (เว้นว่างได้ ระบบจะใช้ชื่อเล่นจากฟอร์ม)'],
+    ['short_section', 'แผนกแบบย่อ เช่น IT, ACC, SALES-1 จะแสดงตอนชี้ที่ตัวการ์ตูนและในรายชื่อ'],
+    ['emp_pic_path', 'รูปหน้าตรงของพนักงาน รองรับ 3 แบบ:\n1) ลิงก์แชร์ Google Drive เช่น https://drive.google.com/file/d/xxxxxxxx/view\n2) File ID ของ Google Drive\n3) ลิงก์รูปสาธารณะที่ลงท้าย .jpg / .png'],
+    ['', ''],
+    ['คำแนะนำรูปภาพ', '• รูปสี่เหลี่ยมจัตุรัส หน้าอยู่กลางภาพ พื้นหลังเรียบ\n• ขนาดไม่เกิน 2 MB (ระบบย่อเหลือ ~200px ให้อัตโนมัติ)\n• เก็บรูปในโฟลเดอร์ Drive ของบัญชีเจ้าของสคริปต์ หรือแชร์ให้บัญชีนั้นอ่านได้'],
+    ['ความเป็นส่วนตัว', 'หน้าเว็บเป็นสาธารณะ: จะแสดงรูป/ชื่อ/แผนก เฉพาะคนที่จองรถแล้วเท่านั้น ควรได้รับความยินยอมจากพนักงานก่อนใส่รูป'],
+    ['อัปเดตเมื่อไร', 'แก้ชีตได้ตลอด หน้าเว็บจะดึงข้อมูลใหม่ภายในประมาณ 1 นาที']
+  ];
+  g.getRange(1, 1, rows.length, 2).setValues(rows).setVerticalAlignment('top').setWrap(true);
+  g.getRange('A1').setFontSize(14).setFontWeight('bold');
+  g.getRange('A3:B3').setFontWeight('bold').setBackground('#0f2a44').setFontColor('#ffffff');
+  g.getRange('A4:A11').setFontWeight('bold');
+  g.setColumnWidth(1, 160); g.setColumnWidth(2, 640);
+  ss.setActiveSheet(sh);
+  Logger.log('สร้างชีต Employees + คู่มือ แล้ว: ' + ss.getUrl());
+}
+
+function readEmployees_() {
+  const cache = CacheService.getScriptCache();
+  const hit = cache.get('employees');
+  if (hit) return JSON.parse(hit);
+  const ss = SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('SHEET_ID'));
+  const sh = ss.getSheetByName(EMP_SHEET);
+  const map = {};
+  if (sh && sh.getLastRow() > 1) {
+    sh.getRange(2, 1, sh.getLastRow() - 1, 4).getDisplayValues().forEach(([id, name, sec, pic]) => {
+      id = String(id).trim();
+      if (/^[0-9]{4}$/.test(id)) map[id] = { name: String(name).trim().slice(0, 12), section: String(sec).trim().slice(0, 24), pic: String(pic).trim() };
+    });
+  }
+  cache.put('employees', JSON.stringify(map), 60);
+  return map;
+}
+
+function driveId_(path) {
+  const m = String(path).match(/(?:\/d\/|id=)([A-Za-z0-9_-]{20,})/);
+  if (m) return m[1];
+  return /^[A-Za-z0-9_-]{25,}$/.test(path) ? path : null;
+}
+
+/** รูปพนักงาน (ย่อแล้ว) เป็น data URL — ให้เฉพาะคนที่จองรถแล้ว */
+function picFor_(emp) {
+  const cache = CacheService.getScriptCache();
+  const key = 'pic_' + emp;
+  const hit = cache.get(key);
+  if (hit) return hit;
+  const e = readEmployees_()[emp];
+  if (!e || !e.pic) return '';
+  let blob = null;
+  try {
+    const id = driveId_(e.pic);
+    if (id) {
+      const res = UrlFetchApp.fetch('https://drive.google.com/thumbnail?sz=w200&id=' + id,
+        { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
+      blob = res.getResponseCode() === 200 ? res.getBlob() : DriveApp.getFileById(id).getThumbnail();
+    } else if (/^https:\/\//.test(e.pic)) {
+      const res = UrlFetchApp.fetch(e.pic, { muteHttpExceptions: true });
+      if (res.getResponseCode() === 200) blob = res.getBlob();
+    }
+  } catch (err) {
+    Logger.log('โหลดรูปไม่ได้ ' + emp + ': ' + err.message);
+  }
+  if (!blob) return '';
+  const src = 'data:' + (blob.getContentType() || 'image/jpeg') + ';base64,' + Utilities.base64Encode(blob.getBytes());
+  if (src.length < 95000) cache.put(key, src, 21600);
+  return src.length < 400000 ? src : '';
+}
+
 /** จัดที่นั่ง: ใครส่งก่อนได้ก่อน อันดับ 1 เต็ม → อันดับ 2 → รอจัดสรร */
 function allocate_(rows) {
   const open = +new Date(CONFIG.OPEN_AT);
@@ -174,7 +284,11 @@ function readRows_() {
 function buildPayload_() {
   const form = getForm_();
   const { seats, waitlist } = allocate_(readRows_());
-  const strip = (p) => ({ emp: p.emp, nick: p.nick, rank: p.rank, t: p.t });
+  const emps = readEmployees_();
+  const strip = (p) => {
+    const e = emps[p.emp] || {};
+    return { emp: p.emp, nick: e.name || p.nick, section: e.section || '', pic: !!e.pic, rank: p.rank, t: p.t };
+  };
   return {
     updatedAt: new Date().toISOString(),
     openAt: CONFIG.OPEN_AT,
@@ -183,17 +297,30 @@ function buildPayload_() {
     accepting: form.isAcceptingResponses(),
     formUrl: form.getPublishedUrl(),
     buses: CONFIG.BUSES.map((b) => Object.assign({}, b, { seats: seats[b.id].map(strip) })),
-    waitlist: waitlist.map((p) => ({ emp: p.emp, nick: p.nick, t: p.t }))
+    waitlist: waitlist.map((p) => ({ emp: p.emp, nick: (emps[p.emp] || {}).name || p.nick, section: (emps[p.emp] || {}).section || '', t: p.t }))
   };
 }
 
 /** Web app endpoint ที่หน้า bus.html ดึงไปแสดง (cache 15 วินาที) */
-function doGet() {
+function doGet(e) {
+  const emp = e && e.parameter && e.parameter.pic;
+  if (emp) {
+    let src = '';
+    if (/^[0-9]{4}$/.test(emp)) {
+      const booked = JSON.parse(cachedPayload_()).buses.some((b) => b.seats.some((p) => p.emp === emp));
+      if (booked) src = picFor_(emp);
+    }
+    return ContentService.createTextOutput(JSON.stringify({ emp, src })).setMimeType(ContentService.MimeType.JSON);
+  }
+  return ContentService.createTextOutput(cachedPayload_()).setMimeType(ContentService.MimeType.JSON);
+}
+
+function cachedPayload_() {
   const cache = CacheService.getScriptCache();
   let json = cache.get('payload');
   if (!json) {
     json = JSON.stringify(buildPayload_());
     cache.put('payload', json, 15);
   }
-  return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+  return json;
 }

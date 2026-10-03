@@ -447,14 +447,14 @@ function makeChibi(p, b, standing) {
   const sleepy = b.mood === 'sleep'; const happy = b.mood === 'laugh';
   for (const s of [-1, 1]) {
     if (sleepy || happy) {
-      const e = new THREE.Mesh(geo.closed, black); e.position.set(.255, .03, s * .1); e.rotation.set(0, Math.PI / 2, sleepy ? Math.PI : 0); headG.add(e);
+      const e = new THREE.Mesh(geo.closed, black); e.position.set(.255, .03, s * .1); e.rotation.set(0, Math.PI / 2, sleepy ? Math.PI : 0); e.userData.face = true; headG.add(e);
     } else {
-      const e = new THREE.Mesh(geo.eye, black); e.position.set(.245, .03, s * .1); e.scale.set(.7, 1.15, 1); headG.add(e);
-      const sh = new THREE.Mesh(geo.shine, white); sh.position.set(.275, .055, s * .1 + .012); headG.add(sh);
+      const e = new THREE.Mesh(geo.eye, black); e.position.set(.245, .03, s * .1); e.scale.set(.7, 1.15, 1); e.userData.face = true; headG.add(e);
+      const sh = new THREE.Mesh(geo.shine, white); sh.position.set(.275, .055, s * .1 + .012); sh.userData.face = true; headG.add(sh);
     }
-    const ch = new THREE.Mesh(geo.cheek, pink); ch.position.set(.22, -.05, s * .16); ch.scale.set(.5, .6, 1); headG.add(ch);
+    const ch = new THREE.Mesh(geo.cheek, pink); ch.position.set(.22, -.05, s * .16); ch.scale.set(.5, .6, 1); ch.userData.face = true; headG.add(ch);
   }
-  const mouth = new THREE.Mesh(geo.mouth, mat(0xc0394f)); mouth.position.set(.262, -.07, 0); mouth.rotation.set(0, Math.PI / 2, Math.PI); headG.add(mouth);
+  const mouth = new THREE.Mesh(geo.mouth, mat(0xc0394f)); mouth.position.set(.262, -.07, 0); mouth.rotation.set(0, Math.PI / 2, Math.PI); mouth.userData.face = true; headG.add(mouth);
   g.userData.mouth = mouth;
   // arms (pivot at shoulder)
   const arms = [-1, 1].map((s) => {
@@ -489,6 +489,34 @@ function makeChibi(p, b, standing) {
   const tag = nameSprite(p.nick || p.emp, b.color); tag.position.y = 1.22; g.add(tag); g.userData.tag = tag;
   return g;
 }
+
+const photoTex = new Map();
+const faceGeo = new THREE.CircleGeometry(.215, 40);
+function photoTexture(src) {
+  if (photoTex.has(src)) return photoTex.get(src);
+  const c = document.createElement('canvas'); c.width = c.height = 160;
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const img = new Image();
+  img.onload = () => {
+    const x = c.getContext('2d'); const s = Math.min(img.width, img.height);
+    x.save(); x.beginPath(); x.arc(80, 80, 78, 0, Math.PI * 2); x.clip();
+    x.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, 160, 160); x.restore();
+    x.lineWidth = 6; x.strokeStyle = '#ffffff'; x.beginPath(); x.arc(80, 80, 77, 0, Math.PI * 2); x.stroke();
+    t.needsUpdate = true;
+  };
+  img.src = src; photoTex.set(src, t); return t;
+}
+function applyPhoto(ch, src) {
+  if (!src || ch.userData.photo) return;
+  const face = new THREE.Mesh(faceGeo, new THREE.MeshBasicMaterial({ map: photoTexture(src), transparent: true }));
+  face.position.set(.262, -.005, 0); face.rotation.y = Math.PI / 2;
+  ch.userData.headG.add(face); ch.userData.photo = face;
+  ch.userData.headG.children.forEach((m) => { if (m.userData.face) m.visible = false; });
+}
+window.addEventListener('busphoto', (e) => {
+  const { emp, src } = e.detail || {};
+  crowd.children.forEach((c) => { if (c.userData.p.emp === emp) applyPhoto(c, src); });
+});
 
 const crowd = new THREE.Group(); bus.add(crowd);
 let currentBus = CFG.buses[0];
@@ -538,6 +566,7 @@ function buildCrowd() {
     ch.userData.base = ch.position.clone(); ch.userData.baseRot = ch.rotation.y;
     ch.userData.tag.visible = showNames;
     crowd.add(ch);
+    const ph = window.__busPhotos && window.__busPhotos.get(p.emp); if (ph) applyPhoto(ch, ph);
     pickables.push(ch.userData.headG.children[0]);
   });
   caption.innerHTML = `${b.emoji} <b>VIP Bus ${b.id} · ${b.name}</b> — ${people.length}/${cap} ที่นั่ง${sample ? ' <span class="b3-sample">ตัวอย่าง (ยังไม่มีคนจอง)</span>' : ''}`;
@@ -585,7 +614,7 @@ renderer.domElement.addEventListener('pointermove', (e) => {
   if (hit) {
     const p = hit.object.userData.pick.userData.p;
     tip.hidden = false; tip.style.left = (e.clientX - r.left + 12) + 'px'; tip.style.top = (e.clientY - r.top - 10) + 'px';
-    tip.textContent = `${p.nick} · ${p.emp}${p.rank === 2 ? ' · อันดับ 2' : ''}`;
+    tip.textContent = `${p.nick} · ${p.emp}${p.section ? ' · ' + p.section : ''}${p.rank === 2 ? ' · อันดับ 2' : ''}`;
     renderer.domElement.style.cursor = 'pointer';
   } else { tip.hidden = true; renderer.domElement.style.cursor = ''; }
 });

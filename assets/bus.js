@@ -114,6 +114,41 @@
     return { seats, waitlist, log };
   }
 
+  // ---------- employee photos (from the Employees sheet via the endpoint) ----------
+  const photos = new Map();
+  window.__busPhotos = photos;
+  const isLive = () => CFG.endpoint && !/[?&]demo\b/.test(location.search);
+  const photoTried = new Set();
+  let photoBusy = 0; const photoQueue = [];
+  function setSeatPhoto(emp, src) {
+    document.querySelectorAll(`.seat[data-emp="${CSS.escape(emp)}"]`).forEach((el) => {
+      el.classList.add('has-photo'); el.querySelector('.av').innerHTML = `<img src="${src}" alt="">`;
+    });
+    window.dispatchEvent(new CustomEvent('busphoto', { detail: { emp, src } }));
+  }
+  function pumpPhotos() {
+    while (photoBusy < 4 && photoQueue.length) {
+      const emp = photoQueue.shift(); photoBusy++;
+      fetch(CFG.endpoint + '?pic=' + encodeURIComponent(emp))
+        .then((r) => r.json())
+        .then((d) => { if (d && d.src) { photos.set(emp, d.src); try { sessionStorage.setItem('pic_' + emp, d.src); } catch (e) {} setSeatPhoto(emp, d.src); } })
+        .catch(() => {})
+        .finally(() => { photoBusy--; pumpPhotos(); });
+    }
+  }
+  function hydratePhotos() {
+    if (!isLive()) return;
+    document.querySelectorAll('.seat.taken[data-pic="1"]').forEach((el) => {
+      const emp = el.dataset.emp;
+      if (photos.has(emp) || photoTried.has(emp)) return;
+      photoTried.add(emp);
+      let cached = null; try { cached = sessionStorage.getItem('pic_' + emp); } catch (e) {}
+      if (cached) { photos.set(emp, cached); setSeatPhoto(emp, cached); return; }
+      photoQueue.push(emp);
+    });
+    pumpPhotos();
+  }
+
   // ---------- rendering ----------
   const busById = Object.fromEntries(CFG.buses.map((b) => [b.id, b]));
   let capacity = CFG.capacity;
@@ -161,8 +196,9 @@
         const st = `grid-row:${p.r + 1};grid-column:${p.c}`;
         const s = list[i];
         if (!s) return `<span class="seat empty" style="${st}"></span>`;
-        return `<button class="seat taken${fresh.has(s.emp) ? ' pop' : ''}" style="${st}" data-emp="${esc(s.emp)}" title="${esc(s.nick)} · ${esc(s.emp)} · อันดับ ${s.rank}">
-          <span class="rk">${s.rank === 1 ? '⭐' : '🔁'}</span><span class="av">${avatar(s.emp, b.mood)}</span><span class="nm">${esc(s.nick)}</span></button>`;
+        const ph = photos.get(s.emp);
+        return `<button class="seat taken${fresh.has(s.emp) ? ' pop' : ''}${ph ? ' has-photo' : ''}" style="${st}" data-emp="${esc(s.emp)}"${s.pic ? ' data-pic="1"' : ''} title="${esc(s.nick)} · ${esc(s.emp)}${s.section ? ' · ' + esc(s.section) : ''} · อันดับ ${s.rank}">
+          <span class="rk">${s.rank === 1 ? '⭐' : '🔁'}</span><span class="av">${ph ? `<img src="${ph}" alt="">` : avatar(s.emp, b.mood)}</span><span class="nm">${esc(s.nick)}</span></button>`;
       }).join('');
     });
     const wl = data.waitlist || [];
@@ -172,6 +208,7 @@
     renderStats();
     runFind();
     window.__busData = { data, capacity };
+    hydratePhotos();
     window.dispatchEvent(new CustomEvent('busdata'));
   }
 
@@ -194,7 +231,7 @@
     const b = busById[btn.dataset.bus];
     const list = current.seats[b.id] || [];
     $('#pax-body').innerHTML = `<div class="pax-head"><span>${b.emoji}</span><h3>Bus ${b.id} · ${esc(b.name)} <small class="muted">(${list.length}/${capacity})</small></h3></div>
-      ${list.length ? `<ol class="pax-list">${list.map((p, i) => `<li>${avatar(p.emp, b.mood)}<div><b>${i + 1}. ${esc(p.nick)}</b><small>รหัส ${esc(p.emp)} · ${p.rank === 1 ? '⭐ อันดับ 1' : '🔁 อันดับ 2'}</small></div></li>`).join('')}</ol>` : '<p class="muted">ยังไม่มีคนจอง</p>'}`;
+      ${list.length ? `<ol class="pax-list">${list.map((p, i) => `<li>${photos.get(p.emp) ? `<img class="pax-ph" src="${photos.get(p.emp)}" alt="">` : avatar(p.emp, b.mood)}<div><b>${i + 1}. ${esc(p.nick)}</b><small>รหัส ${esc(p.emp)}${p.section ? ' · ' + esc(p.section) : ''} · ${p.rank === 1 ? '⭐ อันดับ 1' : '🔁 อันดับ 2'}</small></div></li>`).join('')}</ol>` : '<p class="muted">ยังไม่มีคนจอง</p>'}`;
     dlg.showModal();
   });
   dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
@@ -211,7 +248,7 @@
       const i = list.findIndex((p) => p.emp === q || p.nick.toLowerCase() === q);
       if (i > -1) {
         const p = list[i];
-        out.innerHTML = `🎉 <b>${esc(p.nick)} (${esc(p.emp)})</b> ได้นั่ง <b style="color:${b.color}">Bus ${b.id} ${b.emoji} ${esc(b.name)}</b> · ที่นั่งลำดับ ${i + 1} · ${p.rank === 1 ? 'ได้รถอันดับ 1 ⭐' : 'อันดับ 1 เต็ม ได้รถอันดับ 2 🔁'}`;
+        out.innerHTML = `🎉 <b>${esc(p.nick)} (${esc(p.emp)}${p.section ? ' · ' + esc(p.section) : ''})</b> ได้นั่ง <b style="color:${b.color}">Bus ${b.id} ${b.emoji} ${esc(b.name)}</b> · ที่นั่งลำดับ ${i + 1} · ${p.rank === 1 ? 'ได้รถอันดับ 1 ⭐' : 'อันดับ 1 เต็ม ได้รถอันดับ 2 🔁'}`;
         const el = document.querySelector(`#bus-${b.id} .seat[data-emp="${CSS.escape(p.emp)}"]`);
         if (el) { el.classList.add('hit'); if (scroll) el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' }); }
         window.dispatchEvent(new CustomEvent('busfind', { detail: { q: p.emp, busId: b.id } }));
