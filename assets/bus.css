@@ -187,3 +187,13 @@
 /* employee photos */
 .seat.has-photo .av img { width: 100%; height: 100%; display: block; object-fit: cover; border-radius: 50%; border: 2px solid var(--c); box-shadow: 0 2px 6px rgba(0,0,0,.18); }
 .pax-ph { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex: none; border: 2px solid var(--line); }
+
+/* Bus 888 casino look (2D seat map) */
+.bus-card[data-mood="luck"] .bus-body { background: radial-gradient(ellipse at 50% 35%, #157a4c, #0b3d2a 75%); border-color: #e0b44c; box-shadow: inset 0 0 0 3px rgba(224,180,76,.35); }
+.bus-card[data-mood="luck"] .bus-body::before { background: linear-gradient(180deg, #ffe9a8, #e0b44c); }
+.bus-card[data-mood="luck"] .seat { background: rgba(255,255,255,.08); box-shadow: inset 0 -4px 0 rgba(224,180,76,.45); }
+.bus-card[data-mood="luck"] .seat.taken { background: #fffaf0; }
+.bus-card[data-mood="luck"] .seat.empty::after { background: rgba(224,180,76,.35); }
+.bus-card[data-mood="luck"] h3 { color: #b8860b; }
+.bus-card[data-mood="luck"] .cap-bar span { background: linear-gradient(90deg, #e0b44c, #c8102e); }
+.bus-card[data-mood="luck"] header::after { content: "🎰 ♠ ♥ ♦ ♣ 🎲"; display: block; font-size: 13px; letter-spacing: 2px; margin-top: 4px; }

@@ -284,6 +284,21 @@ function liveryTexture(b) {
   const c = document.createElement('canvas'); c.width = 2048; c.height = 300;
   const x = c.getContext('2d'); const r = (n) => (hash(b.id + ':' + n) % 1000) / 1000;
   x.clearRect(0, 0, 2048, 300);
+  if (b.mood === 'luck') {
+    const g = x.createLinearGradient(0, 0, 0, 300); g.addColorStop(0, '#0b3d2a'); g.addColorStop(1, '#06231a');
+    x.fillStyle = g; x.beginPath(); x.roundRect(10, 20, 2028, 260, 40); x.fill();
+    x.strokeStyle = '#e0b44c'; x.lineWidth = 10; x.stroke();
+    x.font = '700 70px serif'; x.textBaseline = 'middle'; x.textAlign = 'center';
+    ['♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣', '♠', '♥'].forEach((sym, i) => { x.fillStyle = i % 2 ? '#ff4d6d' : '#f4f1e8'; x.globalAlpha = .35; x.fillText(sym, 120 + i * 200, 70 + (i % 3) * 80); });
+    x.globalAlpha = 1; x.textAlign = 'left';
+    x.font = '800 120px Mitr, sans-serif'; x.lineWidth = 14; x.strokeStyle = '#2a1600'; x.strokeText('888 CASINO', 360, 150);
+    const gold = x.createLinearGradient(0, 90, 0, 210); gold.addColorStop(0, '#fff3b0'); gold.addColorStop(.5, '#e0b44c'); gold.addColorStop(1, '#9a6b14');
+    x.fillStyle = gold; x.fillText('888 CASINO', 360, 150);
+    x.font = '700 60px Mitr, sans-serif'; x.lineWidth = 10; x.strokeText(`VIP BUS ${b.id}`, 60, 150); x.fillStyle = '#ffffff'; x.fillText(`VIP BUS ${b.id}`, 60, 150);
+    x.font = '600 40px Mitr, sans-serif'; x.fillStyle = '#e0b44c'; x.fillText('LUCKY · FOR FUN ONLY', 1180, 236);
+    for (let i = 0; i < 6; i++) { const cx = 1500 + i * 85, cy = 110; x.fillStyle = ['#e2445c', '#2b6cff', '#111', '#1aa36f', '#e0b44c', '#7a3cff'][i]; x.beginPath(); x.arc(cx, cy, 34, 0, Math.PI * 2); x.fill(); x.strokeStyle = '#fff'; x.lineWidth = 6; x.setLineDash([10, 8]); x.stroke(); x.setLineDash([]); }
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+  }
   const blobs = [b.color, '#ff3bd4', '#3bd5ff', '#ffd23f', '#7cff6b', '#b45cff'];
   for (let i = 0; i < 22; i++) {
     const cx = 120 + r(i) * 1800, cy = 60 + r(i + 50) * 220, rad = 60 + r(i + 90) * 130;
@@ -407,6 +422,63 @@ function diceTexture(n) {
 const diceMats = [1, 6, 2, 5, 3, 4].map((n) => new THREE.MeshStandardMaterial({ map: diceTexture(n), roughness: .35 }));
 const dice = [];
 for (let i = 0; i < 5; i++) { const d = new THREE.Mesh(new THREE.BoxGeometry(.24, .24, .24), diceMats); d.position.set(-4 + i * 2, FLOOR + 1.9, 0); d.castShadow = true; bus.add(d); dice.push(d); }
+// ---------- casino props (Bus 888) ----------
+const casino = new THREE.Group(); bus.add(casino);
+function rouletteTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 512; const x = c.getContext('2d'); const n = 37, r = 250;
+  for (let i = 0; i < n; i++) {
+    const a0 = i / n * Math.PI * 2, a1 = (i + 1) / n * Math.PI * 2;
+    x.fillStyle = i === 0 ? '#1aa36f' : i % 2 ? '#c8102e' : '#141414';
+    x.beginPath(); x.moveTo(256, 256); x.arc(256, 256, r, a0, a1); x.closePath(); x.fill();
+  }
+  x.fillStyle = '#5a3a12'; x.beginPath(); x.arc(256, 256, 150, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#e0b44c'; x.beginPath(); x.arc(256, 256, 40, 0, Math.PI * 2); x.fill();
+  x.strokeStyle = '#e0b44c'; x.lineWidth = 6; for (let k = 0; k < 4; k++) { x.beginPath(); x.moveTo(256, 256); x.lineTo(256 + Math.cos(k * Math.PI / 2) * 140, 256 + Math.sin(k * Math.PI / 2) * 140); x.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const roulette = new THREE.Group(); roulette.position.set(L / 2 - 1.45, UP + .02, 0); casino.add(roulette);
+{
+  const stand = new THREE.Mesh(new THREE.CylinderGeometry(.08, .16, .55, 12), busMats.gold); stand.position.y = .28; roulette.add(stand);
+  const bowl = new THREE.Mesh(new THREE.CylinderGeometry(.42, .36, .1, 40), new THREE.MeshStandardMaterial({ color: 0x4a2a0c, roughness: .4 })); bowl.position.y = .6; roulette.add(bowl);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(.42, .03, 8, 48), busMats.gold); rim.rotation.x = Math.PI / 2; rim.position.y = .66; roulette.add(rim);
+  const wheel = new THREE.Mesh(new THREE.CircleGeometry(.37, 48), new THREE.MeshStandardMaterial({ map: rouletteTexture(), roughness: .35, metalness: .1 }));
+  wheel.rotation.x = -Math.PI / 2; wheel.position.y = .656; roulette.add(wheel); roulette.userData.wheel = wheel;
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(.03, 12, 8), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .1, metalness: .3 }));
+  ball.position.y = .69; roulette.add(ball); roulette.userData.ball = ball;
+}
+// chip stacks on the armrests
+{
+  const chipGeo = new THREE.CylinderGeometry(.06, .06, .018, 20);
+  const chipCols = [0xe2445c, 0x2b6cff, 0x111111, 0x1aa36f, 0xe0b44c];
+  for (let k = 0; k < 10; k++) {
+    const stack = new THREE.Group(); const h = 3 + (k * 7) % 6;
+    for (let j = 0; j < h; j++) { const ch = new THREE.Mesh(chipGeo, new THREE.MeshStandardMaterial({ color: chipCols[(k + j) % 5], roughness: .4 })); ch.position.y = j * .02; stack.add(ch); }
+    stack.position.set(L / 2 - 2.4 - k * .9, UP + .5, k % 2 ? .21 : -.21); casino.add(stack);
+  }
+}
+// rooftop neon sign
+function neonTexture() {
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 256; const x = c.getContext('2d');
+  x.fillStyle = '#120a06'; x.beginPath(); x.roundRect(8, 8, 1008, 240, 40); x.fill();
+  x.strokeStyle = '#e0b44c'; x.lineWidth = 10; x.stroke();
+  x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = '800 150px Mitr, sans-serif';
+  x.shadowColor = '#ff2d55'; x.shadowBlur = 40; x.fillStyle = '#ffd23f'; x.fillText('888 CASINO', 512, 132);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const neon = new THREE.Mesh(new THREE.PlaneGeometry(3.6, .9), new THREE.MeshBasicMaterial({ map: neonTexture(), transparent: true, side: THREE.DoubleSide }));
+neon.position.set(0, ROOF + .62, 0); casino.add(neon);
+const neonPosts = [-1.5, 1.5].map((x) => { const p = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .5, 6), busMats.gold); p.position.set(x, ROOF + .2, 0); casino.add(p); return p; });
+// marquee bulbs around the roof edge (chase lights)
+const bulbOn = new THREE.MeshStandardMaterial({ color: 0xfff2b0, emissive: 0xffc94a, emissiveIntensity: 3 });
+const bulbOff = new THREE.MeshStandardMaterial({ color: 0x6b5520, emissive: 0x2a1c05, emissiveIntensity: .4 });
+const bulbs = [];
+{
+  const g = new THREE.SphereGeometry(.045, 8, 6);
+  for (const sd of [-1, 1]) for (let i = 0; i < 34; i++) {
+    const m = new THREE.Mesh(g, bulbOn); m.position.set(-L / 2 + .5 + i * (L - 1.2) / 33, ROOF + .12, sd * (W / 2 + .05)); casino.add(m); bulbs.push(m);
+  }
+}
+const casinoLights = [0xff2d55, 0xe0b44c].map((c, i) => { const l = new THREE.PointLight(c, 3, 7, 1.6); l.position.set(-2.5 + i * 5, FLOOR + 2.2, 0); casino.add(l); return l; });
 const matCache = new Map();
 const mat = (color, opts = {}) => {
   const key = color + JSON.stringify(opts);
@@ -538,12 +610,15 @@ function applyTheme(b) {
   const party = b.mood === 'dance' || b.mood === 'party';
   disco.visible = party; lasers.forEach((l) => (l.visible = party));
   partyLights.forEach((l) => (l.visible = party || b.mood === 'sing'));
-  cabinLight.color.set(b.mood === 'sleep' ? 0x5d74c9 : b.mood === 'luck' ? 0xbfffd6 : 0xffe7c2);
+  cabinLight.color.set(b.mood === 'sleep' ? 0x5d74c9 : b.mood === 'luck' ? 0xffd38a : 0xffe7c2);
   dice.forEach((d) => (d.visible = b.mood === 'luck'));
+  casino.visible = b.mood === 'luck';
+  busMats.floor.color.set(b.mood === 'luck' ? 0x0f5132 : 0x1d1a24);
+  busMats.seat.color.set(b.mood === 'luck' ? 0x5c0f1e : 0x3a1f2b);
   cabinLight.intensity = b.mood === 'sleep' ? 1.6 : party ? 1.2 : 3;
   cabinFill.forEach((l) => { l.intensity = b.mood === 'sleep' ? .8 : party ? 1 : 2.2; l.color.set(b.mood === 'sleep' ? 0x7d8fe0 : 0xfff0dc); });
   setSky(b.mood);
-  const screenText = { sleep: '😴 Good Night', sing: '🎤 ♪ ร้องเลย ♪', dance: '🪩 VIP DANCE', laugh: '😂 888888', luck: '🃏 888 ลุ้นโชค 🎲', party: '🎉 PARTY BUS' }[b.mood];
+  const screenText = { sleep: '😴 Good Night', sing: '🎤 ♪ ร้องเลย ♪', dance: '🪩 VIP DANCE', laugh: '😂 888888', luck: '🎰 888 CASINO 🎲', party: '🎉 PARTY BUS' }[b.mood];
   drawScreen(screenText, b.color);
 }
 
@@ -661,6 +736,14 @@ function animate() {
   busMats.led.emissiveIntensity = currentBus.mood === 'sleep' ? 1.2 : 2 + Math.sin(t * 6) * .8;
   speakerRings.forEach((r, i) => r.scale.setScalar(currentBus.mood === 'sleep' ? 1 : 1 + Math.max(0, Math.sin(t * 8.4 + i * .5)) * .18));
   dice.forEach((d, i) => { if (d.visible) { d.rotation.x += dt * (1.2 + i * .3); d.rotation.y += dt * (1.6 + i * .2); d.position.y = FLOOR + 1.95 + Math.sin(t * 2 + i) * .12; } });
+  if (casino.visible) {
+    roulette.userData.wheel.rotation.z += dt * 2.4;
+    const ba = -t * 3.6; roulette.userData.ball.position.set(Math.cos(ba) * .31, .69, Math.sin(ba) * .31);
+    const step = Math.floor(t * 8);
+    bulbs.forEach((m, i) => (m.material = (i + step) % 3 === 0 ? bulbOff : bulbOn));
+    casinoLights.forEach((l, i) => (l.intensity = 2.5 + Math.sin(t * 3 + i * Math.PI) * 1.5));
+    neon.material.opacity = .85 + Math.sin(t * 13) * .08 + (Math.sin(t * 2.1) > .97 ? -.4 : 0);
+  }
   // passengers
   const mood = currentBus.mood;
   crowd.children.forEach((c) => {
