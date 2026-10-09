@@ -386,7 +386,7 @@ function surveyPeople_(ss) {
     const r = latest[k]; const e = emps[k];
     const acts = s(r[9]);
     return {
-      matched: !!e,
+      matched: !!e, join: !!e && String(e[8]).indexOf('ไม่เข้าร่วม') !== 0,
       code: /^\d+$/.test(k) ? ('0000' + k).slice(-4) : (e ? s(e[1]) : s(r[1])),
       name: e ? s(e[6]) : s(r[2]), nick: e ? s(e[7]) : '', section: e ? s(e[3]) : s(r[3]) + ' (จากฟอร์ม)',
       time: Utilities.formatDate(r[0], tz, 'd/M/yy HH:mm'),
@@ -456,7 +456,9 @@ function isAllergic_(t) { return /กุ้ง|ปู|หอย|หมึก|ห
 
 function buildSurveySheets() {
   const ss = SpreadsheetApp.openById(SURVEY_SHEET_ID);
-  const d = surveyPeople_(ss); const P = d.people;
+  const d = surveyPeople_(ss);
+  // รหัสที่ไม่พบในรายชื่อพนักงาน = พิมพ์รหัสผิดแล้วตอบใหม่ด้วยรหัสที่ถูก จึงไม่นับ (แสดงไว้ในชีตภาพรวม)
+  const P = d.people.filter((p) => p.matched); const un = d.people.filter((p) => !p.matched);
   const who = (p) => [p.code, p.name, p.nick, p.section];
   const WHO = ['รหัส', 'ชื่อ-สกุล', 'ชื่อเล่น', 'แผนก'];
   const by = (fn) => P.slice().sort((a, b) => String(fn(a)).localeCompare(String(fn(b))) || a.section.localeCompare(b.section) || a.code.localeCompare(b.code));
@@ -528,14 +530,14 @@ function buildSurveySheets() {
   ]);
 
   // 0 ภาพรวม (สร้างท้ายสุดแล้วย้ายมาไว้หน้าชีตสรุป)
-  const un = P.filter((p) => !p.matched);
   const ov = writeSheet_(ss, 'สรุป 0 ภาพรวม', 'สรุปผลแบบสำรวจ Company Trip 2026', [
     { title: 'ภาพรวมการตอบ', total: false, header: ['รายการ', 'จำนวน', 'หมายเหตุ'], rows: [
       ['พนักงานทั้งหมดในรายชื่อ', d.empCount, ''],
       ['แจ้งเข้าร่วม (คอลัมน์ Check)', d.joinCount, ''],
-      ['คำตอบในฟอร์มทั้งหมด (แถว)', d.responses, 'รวมคำตอบซ้ำ ' + (d.responses - P.length) + ' แถว'],
-      ['ผู้ตอบไม่ซ้ำ (ใช้คำตอบล่าสุด)', P.length, 'ตัวเลขในทุกชีตสรุปนับจากจำนวนนี้'],
-      ['รหัสที่ไม่พบในรายชื่อพนักงาน', un.length, un.map((p) => p.code + ' ' + p.name).join(', ')]] },
+      ['คำตอบในฟอร์มทั้งหมด (แถว)', d.responses, 'รวมคำตอบซ้ำ/รหัสผิด ' + (d.responses - P.length) + ' แถว'],
+      ['ผู้เข้าร่วมที่ตอบแบบสำรวจ (ไม่ซ้ำ ใช้คำตอบล่าสุด)', P.length, 'ตัวเลขในทุกชีตสรุปนับจากจำนวนนี้'],
+      ['ในจำนวนนี้ Check ระบุ "ไม่เข้าร่วม" แต่ตอบฟอร์มว่าเข้าร่วม', P.filter((p) => !p.join).length, P.filter((p) => !p.join).map((p) => p.code + ' ' + p.nick).join(', ')],
+      ['ไม่นับ: รหัสที่ไม่พบในรายชื่อ (พิมพ์รหัสผิด)', un.length, un.map((p) => p.code + ' ' + p.name).join(', ')]] },
     { title: 'ไซซ์เสื้อ → ชีต "สรุป 1 ไซซ์เสื้อ"', header: ['ไซซ์', 'จำนวน', '%'], rows: countBy_(P, (p) => p.size, SIZES) },
     { title: 'อาหารเช้า → ชีต "สรุป 2 อาหารเช้า"', header: ['เมนู', 'จำนวน', '%'], rows: countBy_(P, (p) => p.food) },
     { title: 'แพ้อาหาร → ชีต "สรุป 3 แพ้อาหาร"', total: false, header: ['รายการ', 'จำนวน', 'รายละเอียด'], rows: [['ระบุอาหารที่แพ้/ทานไม่ได้', al.length, al.map((p) => (p.nick || p.name) + ': ' + p.allergy).join(' · ')], ['ไม่แพ้', P.length - al.length, '']] },
