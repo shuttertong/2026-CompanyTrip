@@ -360,190 +360,239 @@ function cachedPayload_() {
   return json;
 }
 
-// ---------- สรุปผลแบบสำรวจหลัก แยกรายการเป็นชีต (รัน buildSurveySheets จาก editor; รันซ้ำได้ ชีต "สรุป …" จะถูกสร้างใหม่) ----------
+// ---------- สรุปผลแบบสำรวจหลัก แยกรายการเป็นชีต (สูตรอ้างอิงชีต "รายชื่อพนักงาน" — อัปเดตเอง) ----------
+// รัน buildSurveySheets จาก editor ครั้งเดียว (รันซ้ำได้ ชีต "สรุป …" จะถูกสร้างใหม่)
+// นับเฉพาะแถวที่คอลัมน์ K (ตอบในฟอร์ม ข้อ 1.4) = "เข้าร่วมกิจกรรม"
 const SURVEY_FORM_SHEET = 'การตอบแบบฟอร์ม 1';
-const ACT_RAFT = 'ล่องแก่งเรือยาง';
-const ACT_BOAT = 'ล่องเรือชมสันเขื่อน';
 const ACT_PRICE = 130;
+const ALLERGY_PAT = '"กุ้ง|ปู|หอย|หมึก|หมู|ปลา|สัตว์ปีก|ไก่|เป็ด|นม|ถั่ว|ไข่|ทะเล|เนื้อ|แป้ง|ผัก|เห็ด"';
+const SEC_WINDOW = 50; // จำนวนแถวที่เผื่อไว้สำหรับรายชื่อแผนก
 
-function surveyKey_(v) {
-  const t = String(v).replace(/[^0-9A-Za-z]/g, '');
-  return /^\d+$/.test(t) ? String(Number(t)) : t.toLowerCase();
+function ec_(c) { return "'" + SURVEY_EMP_SHEET + "'!$" + c + '$2:$' + c; }
+function joined_() { return ec_('K') + '="เข้าร่วมกิจกรรม"'; }
+function codeExpr_() { const b = ec_('B'); return 'IF(ISNUMBER(' + b + '),TEXT(' + b + ',"0000"),' + b + '&"")'; }
+function whoCols_() { return [codeExpr_(), ec_('G'), ec_('H'), ec_('D')]; }
+
+/** รายชื่อรายคนแบบสูตร: cols = นิพจน์ของแต่ละคอลัมน์, cond = เงื่อนไข, keys = คีย์เรียงลำดับ (ไม่แสดง) แล้วเรียงต่อด้วยแผนก/รหัส */
+function detailFormula_(cols, cond, keys) {
+  const all = cols.concat(keys || []).map((x) => 'FILTER(' + x + ',f)').join(',');
+  const n = cols.length;
+  const sortArgs = (keys || []).map((k, i) => (n + 1 + i) + ',TRUE').concat(['4,TRUE', '1,TRUE']).join(',');
+  const pick = cols.map((x, i) => i + 1).join(',');
+  return '=IFERROR(ARRAYFORMULA(LET(f,' + cond + ',CHOOSECOLS(SORT(HSTACK(' + all + '),' + sortArgs + '),' + pick + '))),"(ไม่มี)")';
 }
 
-/** คำตอบล่าสุดของแต่ละรหัสพนักงาน จับคู่กับชีตรายชื่อพนักงาน */
-function surveyPeople_(ss) {
-  const tz = 'Asia/Bangkok';
-  const empSh = ss.getSheetByName(SURVEY_EMP_SHEET);
-  const emps = {};
-  const empRows = empSh.getRange(2, 1, empSh.getLastRow() - 1, 9).getValues().filter((r) => String(r[1]).trim() !== '');
-  empRows.forEach((r) => { emps[surveyKey_(r[1])] = r; });
-  const rows = ss.getSheetByName(SURVEY_FORM_SHEET).getDataRange().getValues().slice(1).filter((r) => r[0] instanceof Date);
-  const latest = {};
-  rows.forEach((r) => { const k = surveyKey_(r[1]); if (!latest[k] || r[0] > latest[k][0]) latest[k] = r; });
-  const s = (v) => String(v == null ? '' : v).replace(/​/g, '').trim();
-  const people = Object.keys(latest).map((k) => {
-    const r = latest[k]; const e = emps[k];
-    const acts = s(r[9]);
-    return {
-      matched: !!e, join: !!e && String(e[8]).indexOf('ไม่เข้าร่วม') !== 0,
-      code: /^\d+$/.test(k) ? ('0000' + k).slice(-4) : (e ? s(e[1]) : s(r[1])),
-      name: e ? s(e[6]) : s(r[2]), nick: e ? s(e[7]) : '', section: e ? s(e[3]) : s(r[3]) + ' (จากฟอร์ม)',
-      time: Utilities.formatDate(r[0], tz, 'd/M/yy HH:mm'),
-      size: s(r[6]), food: s(r[7]), allergy: s(r[8]), acts: acts,
-      raft: acts.indexOf(ACT_RAFT) >= 0, boat: acts.indexOf(ACT_BOAT) >= 0, noAct: acts.indexOf('ไม่เข้าร่วม') >= 0,
-      travel: s(r[10]), line: s(r[11]), when: s(r[12]) || s(r[14]), vanPhone: s(r[13]) || s(r[16]), pickup: s(r[15]), contact: s(r[17])
-    };
-  });
-  people.sort((a, b) => a.section.localeCompare(b.section) || a.code.localeCompare(b.code));
-  return { people: people, empCount: empRows.length, joinCount: empRows.filter((r) => String(r[8]).indexOf('ไม่เข้าร่วม') !== 0).length, responses: rows.length };
+/** คอลัมน์ช่วย W:Z ในชีตรายชื่อพนักงาน: สายรถตู้ / ช่วงเวลา / จุดขึ้น-ลง / เบอร์โทร (ดึงคำตอบล่าสุดจากฟอร์ม) */
+function addSurveyHelperColumns_(ss) {
+  const sh = ss.getSheetByName(SURVEY_EMP_SHEET);
+  const F = (c) => "'" + SURVEY_FORM_SHEET + "'!$" + c + '$2:$' + c;
+  const keys = 'INDEX(IFERROR(VALUE(' + F('B') + '),' + F('B') + '))';
+  const look = (r, src) => '=IF($B' + r + '="","",XLOOKUP(IFERROR($B' + r + '*1,$B' + r + '),' + keys + ',' + src + ',"",0,-1))';
+  const src = [
+    F('L'),
+    'INDEX(IF(' + F('M') + '<>"",' + F('M') + ',' + F('O') + '))',
+    F('P'),
+    'INDEX(IF(' + F('N') + '<>"",' + F('N') + '&"",IF(' + F('Q') + '<>"",' + F('Q') + '&"",' + F('R') + '&"")))'
+  ];
+  if (sh.getMaxColumns() < 26) sh.insertColumnsAfter(sh.getMaxColumns(), 26 - sh.getMaxColumns());
+  sh.getRange(1, 23, 1, 4).setValues([['สายรถตู้', 'ช่วงเวลารถตู้', 'จุดขึ้น-ลงรถตู้', 'เบอร์โทร']]).setFontWeight('bold').setBackground('#08231f').setFontColor('#ffffff');
+  const last = sh.getLastRow(); const fs = [];
+  for (let r = 2; r <= last; r++) fs.push(src.map((x) => look(r, x)));
+  sh.getRange(2, 23, fs.length, 4).setFormulas(fs);
 }
 
-function countBy_(people, fn, order) {
-  const m = {};
-  people.forEach((p) => { const k = fn(p); m[k] = (m[k] || 0) + 1; });
-  const keys = Object.keys(m).sort((a, b) => {
-    const ia = order ? order.indexOf(a) : -1, ib = order ? order.indexOf(b) : -1;
-    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || m[b] - m[a];
-  });
-  const total = people.length || 1;
-  return keys.map((k) => [k, m[k], Math.round((m[k] / total) * 1000) / 10 + '%']).concat([['รวม', people.length, '100%']]);
-}
-
-function pivot_(people, fn, options) {
-  const secs = []; const m = {};
-  people.forEach((p) => {
-    if (!m[p.section]) { m[p.section] = {}; secs.push(p.section); }
-    const k = fn(p); m[p.section][k] = (m[p.section][k] || 0) + 1;
-  });
-  const rows = secs.map((sec) => [sec].concat(options.map((o) => m[sec][o] || 0), [options.reduce((a, o) => a + (m[sec][o] || 0), 0)]));
-  rows.push(['รวม'].concat(options.map((o) => people.filter((p) => fn(p) === o).length), [people.length]));
-  return { header: ['แผนก'].concat(options, ['รวม']), rows: rows };
-}
-
-/** blocks: [{ title, header, rows, text }] เรียงต่อกันแนวตั้ง; text=true เก็บเป็นข้อความ (รหัส/เบอร์โทรไม่เสียเลข 0) */
-function writeSheet_(ss, name, title, blocks) {
+function newSummarySheet_(ss, name, title) {
   const old = ss.getSheetByName(name);
   if (old) ss.deleteSheet(old);
   const sh = ss.insertSheet(name, ss.getNumSheets());
   sh.getRange(1, 1).setValue(title).setFontSize(14).setFontWeight('bold');
-  sh.getRange(2, 1).setValue('อัปเดต ' + Utilities.formatDate(new Date(), 'Asia/Bangkok', 'd/M/yyyy HH:mm') + ' · นับคำตอบล่าสุดของแต่ละรหัสพนักงาน').setFontColor('#666666');
-  let row = 4; let maxCols = 1;
-  blocks.forEach((b) => {
-    sh.getRange(row, 1).setValue(b.title).setFontWeight('bold').setFontSize(12).setFontColor('#08231f');
-    row++;
-    const n = b.header.length; maxCols = Math.max(maxCols, n);
-    sh.getRange(row, 1, 1, n).setValues([b.header]).setFontWeight('bold').setBackground('#08231f').setFontColor('#ffffff').setWrap(true).setVerticalAlignment('middle');
-    row++;
-    if (b.rows.length) {
-      const rg = sh.getRange(row, 1, b.rows.length, n);
-      if (b.text) rg.setNumberFormat('@');
-      rg.setValues(b.rows).setVerticalAlignment('top').setBorder(true, true, true, true, true, true, '#d8c9aa', SpreadsheetApp.BorderStyle.SOLID);
-      if (!b.text && b.total !== false) sh.getRange(row + b.rows.length - 1, 1, 1, n).setFontWeight('bold').setBackground('#f4efe4');
-      row += b.rows.length;
-    } else {
-      sh.getRange(row, 1).setValue('(ไม่มี)'); row++;
-    }
-    row += 2;
+  sh.getRange(2, 1).setValue('สูตรอ้างอิงจากชีต "' + SURVEY_EMP_SHEET + '" (อัปเดตอัตโนมัติ) · นับเฉพาะผู้ที่ตอบฟอร์มว่าเข้าร่วม').setFontColor('#666666');
+  return sh;
+}
+function blockTitle_(sh, row, t) { sh.getRange(row, 1).setValue(t).setFontWeight('bold').setFontSize(12).setFontColor('#08231f'); }
+function headerRow_(sh, row, vals) {
+  sh.getRange(row, 1, 1, vals.length).setValues([vals]).setFontWeight('bold').setBackground('#08231f').setFontColor('#ffffff').setWrap(true).setVerticalAlignment('middle');
+}
+function finishSheet_(sh, cols) {
+  SpreadsheetApp.flush();
+  sh.autoResizeColumns(1, cols);
+  for (let c = 1; c <= cols; c++) { const w = sh.getColumnWidth(c); if (w > 320) sh.setColumnWidth(c, 320); else if (w < 90) sh.setColumnWidth(c, 90); }
+  if (sh.getColumnWidth(1) < 170) sh.setColumnWidth(1, 170);
+}
+
+/**
+ * ชีตสรุป 1 รายการ: ตารางจำนวน → ตารางแยกแผนก → รายชื่อรายคน
+ * o = { col, options:[{label, crit}], unit, amount, extra:[[label, formula]], details:[{title, header, formula, reserve}] }
+ */
+function itemSheet_(ss, name, title, o) {
+  const sh = newSummarySheet_(ss, name, title);
+  const K = ec_('K'), D = ec_('D'), col = ec_(o.col);
+  let r = 4; let maxCols = 4;
+  blockTitle_(sh, r, 'สรุปจำนวน'); r++;
+  headerRow_(sh, r, ['รายการ', o.unit, '%'].concat(o.amount ? ['ยอดเงิน (บาท)'] : [])); r++;
+  const first = r; const totalRow = first + o.options.length;
+  o.options.forEach((op) => {
+    sh.getRange(r, 1).setValue(op.label);
+    sh.getRange(r, 2).setFormula('=COUNTIFS(' + col + ',' + op.crit + ',' + K + ',"เข้าร่วมกิจกรรม")');
+    sh.getRange(r, 3).setFormula('=IF($B$' + totalRow + '=0,0,B' + r + '/$B$' + totalRow + ')');
+    if (o.amount) sh.getRange(r, 4).setFormula('=B' + r + '*' + ACT_PRICE);
+    r++;
   });
-  sh.autoResizeColumns(1, maxCols);
-  for (let c = 1; c <= maxCols; c++) if (sh.getColumnWidth(c) > 320) sh.setColumnWidth(c, 320);
-  if (sh.getColumnWidth(1) < 150) sh.setColumnWidth(1, 150);
+  sh.getRange(r, 1).setValue(o.totalLabel || 'รวม');
+  sh.getRange(r, 2).setFormula('=SUM(B' + first + ':B' + (r - 1) + ')');
+  sh.getRange(r, 3).setValue(1);
+  if (o.amount) sh.getRange(r, 4).setFormula('=SUM(D' + first + ':D' + (r - 1) + ')');
+  sh.getRange(r, 1, 1, o.amount ? 4 : 3).setFontWeight('bold').setBackground('#f4efe4');
+  sh.getRange(first, 3, o.options.length + 1, 1).setNumberFormat('0.0%');
+  r++;
+  (o.extra || []).forEach((x) => { sh.getRange(r, 1).setValue(x[0]); sh.getRange(r, 2).setFormula(x[1]); r++; });
+  r += 2;
+
+  // แยกตามแผนก
+  blockTitle_(sh, r, 'แยกตามแผนก'); r++;
+  const labels = o.options.map((op) => op.short || op.label);
+  headerRow_(sh, r, ['แผนก'].concat(labels, ['ผู้ตอบทั้งหมด'])); r++;
+  maxCols = Math.max(maxCols, labels.length + 2);
+  sh.getRange(r, 1).setValue('รวมทุกแผนก');
+  o.options.forEach((op, i) => sh.getRange(r, 2 + i).setFormula('=COUNTIFS(' + col + ',' + op.crit + ',' + K + ',"เข้าร่วมกิจกรรม")'));
+  sh.getRange(r, 2 + labels.length).setFormula('=COUNTIF(' + K + ',"เข้าร่วมกิจกรรม")');
+  sh.getRange(r, 1, 1, labels.length + 2).setFontWeight('bold').setBackground('#f4efe4');
+  r++;
+  const win = '$A' + r + ':$A' + (r + SEC_WINDOW - 1);
+  sh.getRange(r, 1).setFormula('=IFERROR(SORT(UNIQUE(FILTER(' + D + ',' + joined_() + '))),"")');
+  o.options.forEach((op, i) => sh.getRange(r, 2 + i).setFormula('=ARRAYFORMULA(IF(' + win + '="","",COUNTIFS(' + D + ',' + win + ',' + col + ',' + op.crit + ',' + K + ',"เข้าร่วมกิจกรรม")))'));
+  sh.getRange(r, 2 + labels.length).setFormula('=ARRAYFORMULA(IF(' + win + '="","",COUNTIFS(' + D + ',' + win + ',' + K + ',"เข้าร่วมกิจกรรม")))');
+  r += SEC_WINDOW + 2;
+
+  o.details.forEach((d) => {
+    blockTitle_(sh, r, d.title); r++;
+    headerRow_(sh, r, d.header); r++;
+    maxCols = Math.max(maxCols, d.header.length);
+    sh.getRange(r, 1).setFormula(d.formula);
+    r += (d.reserve || 0) + 2;
+  });
+  finishSheet_(sh, maxCols);
   return sh;
 }
 
-function isAllergic_(t) { return /กุ้ง|ปู|หอย|หมึก|หมู|ปลา|สัตว์ปีก|ไก่|เป็ด|นม|ถั่ว|ไข่|ทะเล|เนื้อ|แป้ง|ผัก|เห็ด/.test(t); }
-
 function buildSurveySheets() {
   const ss = SpreadsheetApp.openById(SURVEY_SHEET_ID);
-  const d = surveyPeople_(ss);
-  // รหัสที่ไม่พบในรายชื่อพนักงาน = พิมพ์รหัสผิดแล้วตอบใหม่ด้วยรหัสที่ถูก จึงไม่นับ (แสดงไว้ในชีตภาพรวม)
-  const P = d.people.filter((p) => p.matched); const un = d.people.filter((p) => !p.matched);
-  const who = (p) => [p.code, p.name, p.nick, p.section];
+  addSurveyHelperColumns_(ss);
+  const J = joined_(); const K = ec_('K');
+  const L = ec_('L'), M = ec_('M'), N = ec_('N'), O = ec_('O'), P = ec_('P'), W = ec_('W'), X = ec_('X'), Y = ec_('Y'), Z = ec_('Z');
   const WHO = ['รหัส', 'ชื่อ-สกุล', 'ชื่อเล่น', 'แผนก'];
-  const by = (fn) => P.slice().sort((a, b) => String(fn(a)).localeCompare(String(fn(b))) || a.section.localeCompare(b.section) || a.code.localeCompare(b.code));
+  const who = whoCols_();
+  const lit = (t) => '"' + t.replace(/"/g, '""') + '"';
+  const exact = (labels) => labels.map((l) => ({ label: l, crit: lit(l) }));
+  const re = (rng, pat) => 'REGEXMATCH(' + rng + '&"",' + pat + ')';
 
   // 1 ไซซ์เสื้อ
   const SIZES = ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'มากกว่า 3XL ขึ้นไป'];
-  const pvS = pivot_(P, (p) => p.size, SIZES);
-  const sizeRows = P.slice().sort((a, b) => SIZES.indexOf(a.size) - SIZES.indexOf(b.size) || a.section.localeCompare(b.section) || a.code.localeCompare(b.code));
-  writeSheet_(ss, 'สรุป 1 ไซซ์เสื้อ', '3.2 ไซซ์เสื้อ — สรุปจำนวนสั่งทำ', [
-    { title: 'จำนวนตามไซซ์', header: ['ไซซ์', 'จำนวน (ตัว)', '%'], rows: countBy_(P, (p) => p.size, SIZES) },
-    { title: 'แยกตามแผนก', header: pvS.header, rows: pvS.rows },
-    { title: 'รายละเอียดรายคน', header: WHO.concat(['ไซซ์']), rows: sizeRows.map((p) => who(p).concat([p.size])), text: true }
-  ]);
+  itemSheet_(ss, 'สรุป 1 ไซซ์เสื้อ', '3.2 ไซซ์เสื้อ — สรุปจำนวนสั่งทำ', {
+    col: 'L', unit: 'จำนวน (ตัว)', options: exact(SIZES),
+    details: [{ title: 'รายละเอียดรายคน (เรียงตามไซซ์ → แผนก)', header: WHO.concat(['ไซซ์']),
+      formula: detailFormula_(who.concat([L]), J, ['IFERROR(MATCH(' + L + ',{' + SIZES.map(lit).join(';') + '},0),99)']) }]
+  });
 
   // 2 อาหารเช้า
-  const foods = countBy_(P, (p) => p.food).slice(0, -1).map((r) => r[0]);
-  const pvF = pivot_(P, (p) => p.food, foods);
-  writeSheet_(ss, 'สรุป 2 อาหารเช้า', '3.3 อาหารเช้า — สรุปจำนวนสั่ง', [
-    { title: 'จำนวนตามเมนู', header: ['เมนู', 'จำนวน (ชุด)', '%'], rows: countBy_(P, (p) => p.food) },
-    { title: 'แยกตามแผนก', header: pvF.header, rows: pvF.rows },
-    { title: 'รายละเอียดรายคน', header: WHO.concat(['เมนู', 'แพ้อาหาร (ตามที่กรอก)']), rows: by((p) => p.food).map((p) => who(p).concat([p.food, p.allergy])), text: true }
-  ]);
+  const FOODS = ["Box Set McDonald's (เบอร์เกอร์ & พาย)", 'ข้าวผัดกะเพราหมู + ไข่ดาว', 'ข้าวหน้าปลาแกะ + ไข่ต้ม'];
+  itemSheet_(ss, 'สรุป 2 อาหารเช้า', '3.3 อาหารเช้า — สรุปจำนวนสั่ง', {
+    col: 'M', unit: 'จำนวน (ชุด)', options: exact(FOODS),
+    details: [{ title: 'รายละเอียดรายคน (เรียงตามเมนู → แผนก)', header: WHO.concat(['เมนู', 'แพ้อาหาร (ตามที่กรอก)']),
+      formula: detailFormula_(who.concat([M, N]), J, [M]) }]
+  });
 
   // 3 แพ้อาหาร
-  const al = P.filter((p) => isAllergic_(p.allergy));
-  const odd = P.filter((p) => !isAllergic_(p.allergy) && !/^ไม่แพ้$/.test(p.allergy));
-  writeSheet_(ss, 'สรุป 3 แพ้อาหาร', '3.4 แพ้อาหาร — รายชื่อที่ต้องแจ้งครัว/ร้านอาหาร', [
-    { title: 'สรุป', header: ['รายการ', 'จำนวน (คน)', '%'], rows: countBy_(P, (p) => (isAllergic_(p.allergy) ? 'ระบุอาหารที่แพ้/ทานไม่ได้' : 'ไม่แพ้'), ['ระบุอาหารที่แพ้/ทานไม่ได้', 'ไม่แพ้']) },
-    { title: 'ผู้ที่ระบุอาหารที่แพ้/ทานไม่ได้ (ควรยืนยันกับเจ้าตัว)', header: WHO.concat(['ที่กรอก', 'อาหารเช้าที่เลือก']), rows: al.map((p) => who(p).concat([p.allergy, p.food])), text: true },
-    { title: 'คำตอบอื่น ๆ ที่ตีความว่า "ไม่แพ้" (ตรวจทานได้)', header: WHO.concat(['ที่กรอก']), rows: odd.map((p) => who(p).concat([p.allergy])), text: true }
-  ]);
+  const sh3 = newSummarySheet_(ss, 'สรุป 3 แพ้อาหาร', '3.4 แพ้อาหาร — รายชื่อที่ต้องแจ้งครัว/ร้านอาหาร');
+  blockTitle_(sh3, 4, 'สรุปจำนวน'); headerRow_(sh3, 5, ['รายการ', 'จำนวน (คน)', '%']);
+  sh3.getRange(6, 1, 3, 1).setValues([['ระบุอาหารที่แพ้/ทานไม่ได้'], ['ไม่แพ้'], ['รวม']]);
+  sh3.getRange(6, 2).setFormula('=SUMPRODUCT((' + J + ')*' + re(N, ALLERGY_PAT) + ')');
+  sh3.getRange(7, 2).setFormula('=B8-B6');
+  sh3.getRange(8, 2).setFormula('=COUNTIF(' + K + ',"เข้าร่วมกิจกรรม")');
+  sh3.getRange(6, 3, 3, 1).setFormulas([['=IF($B$8=0,0,B6/$B$8)'], ['=IF($B$8=0,0,B7/$B$8)'], ['=IF($B$8=0,0,1)']]).setNumberFormat('0.0%');
+  sh3.getRange(8, 1, 1, 3).setFontWeight('bold').setBackground('#f4efe4');
+  blockTitle_(sh3, 11, 'ผู้ที่ระบุอาหารที่แพ้/ทานไม่ได้ (ควรยืนยันกับเจ้าตัว)'); headerRow_(sh3, 12, WHO.concat(['ที่กรอก', 'อาหารเช้าที่เลือก']));
+  sh3.getRange(13, 1).setFormula(detailFormula_(who.concat([N, M]), '(' + J + ')*' + re(N, ALLERGY_PAT), []));
+  blockTitle_(sh3, 45, 'คำตอบอื่น ๆ ที่ตีความว่า "ไม่แพ้" (ตรวจทานได้)'); headerRow_(sh3, 46, WHO.concat(['ที่กรอก']));
+  sh3.getRange(47, 1).setFormula(detailFormula_(who.concat([N]), '(' + J + ')*NOT(' + re(N, ALLERGY_PAT) + ')*(TRIM(' + N + ')<>"ไม่แพ้")', []));
+  finishSheet_(sh3, 6);
 
   // 4 กิจกรรมเสริม
-  const act = P.filter((p) => p.raft || p.boat);
-  const nRaft = P.filter((p) => p.raft).length, nBoat = P.filter((p) => p.boat).length;
-  const pvA = pivot_(P, (p) => (p.raft && p.boat ? 'ทั้ง 2 กิจกรรม' : p.raft ? 'ล่องแก่งเรือยาง' : p.boat ? 'ล่องเรือชมเขื่อน' : 'ไม่เข้าร่วม'), ['ล่องแก่งเรือยาง', 'ล่องเรือชมเขื่อน', 'ทั้ง 2 กิจกรรม', 'ไม่เข้าร่วม']);
-  writeSheet_(ss, 'สรุป 4 กิจกรรมเสริม', '3.5 กิจกรรมเสริม (พนักงานชำระเอง ' + ACT_PRICE + ' บาท/ท่าน/กิจกรรม)', [
-    { title: 'จำนวนตามกิจกรรม', header: ['กิจกรรม', 'จำนวน (คน)', 'ยอดเงิน (บาท)'], rows: [
-      ['ล่องแก่งเรือยาง ลำน้ำเพชรบุรี 9 กม.', nRaft, nRaft * ACT_PRICE],
-      ['ล่องเรือชมสันเขื่อนแก่งกระจาน + ถ่ายภาพสะพานแขวน', nBoat, nBoat * ACT_PRICE],
-      ['รวม (คน-กิจกรรม) · มีผู้เข้าร่วมอย่างน้อย 1 กิจกรรม ' + act.length + ' คน · ไม่เข้าร่วม ' + (P.length - act.length) + ' คน', nRaft + nBoat, (nRaft + nBoat) * ACT_PRICE]] },
-    { title: 'แยกตามแผนก (คน)', header: pvA.header, rows: pvA.rows },
-    { title: 'รายละเอียดผู้เข้าร่วมกิจกรรม', header: WHO.concat(['ล่องแก่งเรือยาง', 'ล่องเรือชมเขื่อน', 'ยอดชำระ (บาท)', 'เบอร์โทร', 'หมายเหตุ']),
-      rows: act.map((p) => who(p).concat([p.raft ? '✔' : '', p.boat ? '✔' : '', String(((p.raft ? 1 : 0) + (p.boat ? 1 : 0)) * ACT_PRICE), p.vanPhone || p.contact, p.noAct ? 'เลือก "ไม่เข้าร่วม" มาด้วย — ควรยืนยัน' : ''])), text: true }
-  ]);
+  const RAFT = '"ล่องแก่ง"', BOAT = '"ล่องเรือชม"';
+  const anyAct = '(' + J + ')*' + re(O, '"ล่องแก่ง|ล่องเรือชม"');
+  itemSheet_(ss, 'สรุป 4 กิจกรรมเสริม', '3.5 กิจกรรมเสริม (พนักงานชำระเอง ' + ACT_PRICE + ' บาท/ท่าน/กิจกรรม)', {
+    col: 'O', unit: 'จำนวน (คน)', amount: true, totalLabel: 'รวม (คน-กิจกรรม)',
+    options: [
+      { label: 'ล่องแก่งเรือยาง ลำน้ำเพชรบุรี 9 กม.', short: 'ล่องแก่งเรือยาง', crit: '"*ล่องแก่งเรือยาง*"' },
+      { label: 'ล่องเรือชมสันเขื่อนแก่งกระจาน + ถ่ายภาพสะพานแขวน', short: 'ล่องเรือชมเขื่อน', crit: '"*ล่องเรือชมสันเขื่อน*"' }],
+    extra: [
+      ['ผู้เข้าร่วมอย่างน้อย 1 กิจกรรม (คน)', '=SUMPRODUCT(' + anyAct + ')'],
+      ['ไม่เข้าร่วมกิจกรรมเสริม (คน)', '=COUNTIF(' + K + ',"เข้าร่วมกิจกรรม")-SUMPRODUCT(' + anyAct + ')']],
+    details: [{ title: 'รายละเอียดผู้เข้าร่วมกิจกรรม', header: WHO.concat(['ล่องแก่งเรือยาง', 'ล่องเรือชมเขื่อน', 'ยอดชำระ (บาท)', 'เบอร์โทร', 'หมายเหตุ']),
+      formula: detailFormula_(who.concat([
+        'IF(' + re(O, RAFT) + ',"✔","")', 'IF(' + re(O, BOAT) + ',"✔","")',
+        '(' + re(O, RAFT) + '+' + re(O, BOAT) + ')*' + ACT_PRICE, Z,
+        'IF(' + re(O, '"ไม่เข้าร่วม"') + ',"เลือก ""ไม่เข้าร่วม"" มาด้วย — ควรยืนยัน","")']), anyAct, []) }]
+  });
 
-  // 5 การเดินทางมาบริษัท
-  const mode = (p) => (p.travel.indexOf('ด้วยตนเอง') >= 0 ? 'เดินทางมาเอง' : p.travel.indexOf('ไม่เคย') >= 0 ? 'ขอรถตู้ (ไม่เคยนั่งประจำ)' : 'รถตู้สายประจำ');
-  const MODES = ['เดินทางมาเอง', 'รถตู้สายประจำ', 'ขอรถตู้ (ไม่เคยนั่งประจำ)'];
-  const pvT = pivot_(P, mode, MODES);
-  writeSheet_(ss, 'สรุป 5 การเดินทาง', 'Confirm การเดินทางมาถึงบริษัทก่อน 06:30 น.', [
-    { title: 'จำนวนตามวิธีเดินทาง', header: ['วิธีเดินทาง', 'จำนวน (คน)', '%'], rows: countBy_(P, mode, MODES) },
-    { title: 'แยกตามแผนก', header: pvT.header, rows: pvT.rows },
-    { title: 'รายละเอียดรายคน', header: WHO.concat(['วิธีเดินทาง', 'สายรถตู้ / จุดขึ้น', 'เบอร์โทร']),
-      rows: P.slice().sort((a, b) => MODES.indexOf(mode(a)) - MODES.indexOf(mode(b)) || a.section.localeCompare(b.section) || a.code.localeCompare(b.code)).map((p) => who(p).concat([mode(p), p.line || p.pickup, p.vanPhone || p.contact])), text: true }
-  ]);
+  // 5 การเดินทาง
+  const modeKey = 'IF(' + re(P, '"ด้วยตนเอง"') + ',1,IF(' + re(P, '"ไม่เคย"') + ',3,2))';
+  const modeLabel = 'IF(' + re(P, '"ด้วยตนเอง"') + ',"เดินทางมาเอง",IF(' + re(P, '"ไม่เคย"') + ',"ขอรถตู้ (ไม่เคยนั่งประจำ)","รถตู้สายประจำ"))';
+  itemSheet_(ss, 'สรุป 5 การเดินทาง', 'Confirm การเดินทางมาถึงบริษัทก่อน 06:30 น.', {
+    col: 'P', unit: 'จำนวน (คน)',
+    options: [
+      { label: 'เดินทางมาเอง', crit: '"*ด้วยตนเอง*"' },
+      { label: 'รถตู้สายประจำ', crit: '"*ขึ้นอยู่ประจำ*"' },
+      { label: 'ขอรถตู้ (ไม่เคยนั่งประจำ)', crit: '"*ไม่เคย*"' }],
+    details: [{ title: 'รายละเอียดรายคน (เรียงตามวิธีเดินทาง → แผนก)', header: WHO.concat(['วิธีเดินทาง', 'สายรถตู้ / จุดขึ้น', 'เบอร์โทร']),
+      formula: detailFormula_(who.concat([modeLabel, 'IF(' + W + '<>"",' + W + ',' + Y + ')', Z]), J, [modeKey]) }]
+  });
 
   // 6 รถตู้
-  const van = P.filter((p) => p.line); const fresh = P.filter((p) => !p.line && mode(p) !== 'เดินทางมาเอง');
-  const lines = countBy_(van, (p) => p.line).slice(0, -1).map((r) => r[0]);
-  const short = (w) => (w.indexOf('เฉพาะตอนไป') >= 0 ? 'เฉพาะตอนไป' : w ? 'ไป-กลับ' : '');
-  const lineRows = lines.map((l) => { const g = van.filter((p) => p.line === l); const one = g.filter((p) => short(p.when) === 'เฉพาะตอนไป').length; return [l, g.length, g.length - one, one]; });
-  lineRows.push(['รวม', van.length, van.filter((p) => short(p.when) === 'ไป-กลับ').length, van.filter((p) => short(p.when) === 'เฉพาะตอนไป').length]);
-  writeSheet_(ss, 'สรุป 6 รถตู้', 'ข้อ 4–5 รถตู้รับ-ส่ง — จำนวนตามสายและรายชื่อผู้โดยสาร', [
-    { title: 'จำนวนตามสายรถตู้ (ผู้นั่งประจำ)', header: ['สาย', 'รวม (คน)', 'ไป-กลับ', 'เฉพาะตอนไป'], rows: lineRows },
-    { title: 'ขอรถตู้เพิ่ม (ไม่เคยนั่งประจำ) — ต้องจัดสาย', header: WHO.concat(['จุดขึ้น-ลง', 'ช่วงเวลา', 'เบอร์โทร']), rows: fresh.map((p) => who(p).concat([p.pickup, short(p.when), p.vanPhone])), text: true },
-    { title: 'รายชื่อผู้โดยสารตามสาย', header: ['สาย'].concat(WHO, ['ช่วงเวลา', 'เบอร์โทร']),
-      rows: van.slice().sort((a, b) => lines.indexOf(a.line) - lines.indexOf(b.line) || a.section.localeCompare(b.section) || a.code.localeCompare(b.code)).map((p) => [p.line].concat(who(p), [short(p.when), p.vanPhone])), text: true }
-  ]);
+  const sh6 = newSummarySheet_(ss, 'สรุป 6 รถตู้', 'ข้อ 4–5 รถตู้รับ-ส่ง — จำนวนตามสายและรายชื่อผู้โดยสาร');
+  const when = 'IF(' + re(X, '"เฉพาะตอนไป"') + ',"เฉพาะตอนไป",IF(' + X + '<>"","ไป-กลับ",""))';
+  const hasLine = '(' + J + ')*(' + W + '<>"")';
+  blockTitle_(sh6, 4, 'จำนวนตามสายรถตู้ (ผู้นั่งประจำ)'); headerRow_(sh6, 5, ['สาย', 'รวม (คน)', 'ไป-กลับ', 'เฉพาะตอนไป']);
+  sh6.getRange(6, 1).setValue('รวมทุกสาย');
+  sh6.getRange(6, 2).setFormula('=SUMPRODUCT(' + hasLine + ')');
+  sh6.getRange(6, 3).setFormula('=B6-D6');
+  sh6.getRange(6, 4).setFormula('=SUMPRODUCT(' + hasLine + '*' + re(X, '"เฉพาะตอนไป"') + ')');
+  sh6.getRange(6, 1, 1, 4).setFontWeight('bold').setBackground('#f4efe4');
+  const w6 = '$A7:$A36';
+  sh6.getRange(7, 1).setFormula('=IFERROR(SORT(UNIQUE(FILTER(' + W + ',' + hasLine + '))),"")');
+  sh6.getRange(7, 2).setFormula('=ARRAYFORMULA(IF(' + w6 + '="","",COUNTIFS(' + W + ',' + w6 + ',' + K + ',"เข้าร่วมกิจกรรม")))');
+  sh6.getRange(7, 3).setFormula('=ARRAYFORMULA(IF(' + w6 + '="","",$B7:$B36-$D7:$D36))');
+  sh6.getRange(7, 4).setFormula('=ARRAYFORMULA(IF(' + w6 + '="","",COUNTIFS(' + W + ',' + w6 + ',' + X + ',"*เฉพาะตอนไป*",' + K + ',"เข้าร่วมกิจกรรม")))');
+  blockTitle_(sh6, 39, 'ขอรถตู้เพิ่ม (ไม่เคยนั่งประจำ) — ต้องจัดสาย'); headerRow_(sh6, 40, WHO.concat(['จุดขึ้น-ลง', 'ช่วงเวลา', 'เบอร์โทร']));
+  sh6.getRange(41, 1).setFormula(detailFormula_(who.concat([Y, when, Z]), '(' + J + ')*' + re(P, '"ไม่เคย"'), []));
+  blockTitle_(sh6, 64, 'รายชื่อผู้โดยสารตามสาย'); headerRow_(sh6, 65, WHO.concat(['สาย', 'ช่วงเวลา', 'เบอร์โทร']));
+  sh6.getRange(66, 1).setFormula(detailFormula_(who.concat([W, when, Z]), hasLine, [W]));
+  finishSheet_(sh6, 7);
 
-  // 0 ภาพรวม (สร้างท้ายสุดแล้วย้ายมาไว้หน้าชีตสรุป)
-  const ov = writeSheet_(ss, 'สรุป 0 ภาพรวม', 'สรุปผลแบบสำรวจ Company Trip 2026', [
-    { title: 'ภาพรวมการตอบ', total: false, header: ['รายการ', 'จำนวน', 'หมายเหตุ'], rows: [
-      ['พนักงานทั้งหมดในรายชื่อ', d.empCount, ''],
-      ['แจ้งเข้าร่วม (คอลัมน์ Check)', d.joinCount, ''],
-      ['คำตอบในฟอร์มทั้งหมด (แถว)', d.responses, 'รวมคำตอบซ้ำ/รหัสผิด ' + (d.responses - P.length) + ' แถว'],
-      ['ผู้เข้าร่วมที่ตอบแบบสำรวจ (ไม่ซ้ำ ใช้คำตอบล่าสุด)', P.length, 'ตัวเลขในทุกชีตสรุปนับจากจำนวนนี้'],
-      ['ในจำนวนนี้ Check ระบุ "ไม่เข้าร่วม" แต่ตอบฟอร์มว่าเข้าร่วม', P.filter((p) => !p.join).length, P.filter((p) => !p.join).map((p) => p.code + ' ' + p.nick).join(', ')],
-      ['ไม่นับ: รหัสที่ไม่พบในรายชื่อ (พิมพ์รหัสผิด)', un.length, un.map((p) => p.code + ' ' + p.name).join(', ')]] },
-    { title: 'ไซซ์เสื้อ → ชีต "สรุป 1 ไซซ์เสื้อ"', header: ['ไซซ์', 'จำนวน', '%'], rows: countBy_(P, (p) => p.size, SIZES) },
-    { title: 'อาหารเช้า → ชีต "สรุป 2 อาหารเช้า"', header: ['เมนู', 'จำนวน', '%'], rows: countBy_(P, (p) => p.food) },
-    { title: 'แพ้อาหาร → ชีต "สรุป 3 แพ้อาหาร"', total: false, header: ['รายการ', 'จำนวน', 'รายละเอียด'], rows: [['ระบุอาหารที่แพ้/ทานไม่ได้', al.length, al.map((p) => (p.nick || p.name) + ': ' + p.allergy).join(' · ')], ['ไม่แพ้', P.length - al.length, '']] },
-    { title: 'กิจกรรมเสริม → ชีต "สรุป 4 กิจกรรมเสริม"', header: ['กิจกรรม', 'จำนวน (คน)', 'ยอดเงิน (บาท)'], rows: [['ล่องแก่งเรือยาง', nRaft, nRaft * ACT_PRICE], ['ล่องเรือชมเขื่อน', nBoat, nBoat * ACT_PRICE], ['รวม', nRaft + nBoat, (nRaft + nBoat) * ACT_PRICE]] },
-    { title: 'การเดินทาง → ชีต "สรุป 5 การเดินทาง" / "สรุป 6 รถตู้"', header: ['วิธีเดินทาง', 'จำนวน', '%'], rows: countBy_(P, mode, MODES) }
-  ]);
-  try { ss.setActiveSheet(ov); ss.moveActiveSheet(ss.getNumSheets() - 6); } catch (err) { /* ลำดับชีตไม่สำคัญ */ }
-  return P.length;
+  // 0 ภาพรวม
+  const sh0 = newSummarySheet_(ss, 'สรุป 0 ภาพรวม', 'สรุปผลแบบสำรวจ Company Trip 2026');
+  const cnt = (c, crit) => '=COUNTIFS(' + ec_(c) + ',' + crit + ',' + K + ',"เข้าร่วมกิจกรรม")';
+  const blocks = [
+    ['ภาพรวมการตอบ', [
+      ['พนักงานทั้งหมดในรายชื่อ', '=COUNTA(' + ec_('B') + ')'],
+      ['แจ้งเข้าร่วม (คอลัมน์ Check)', '=COUNTIF(' + ec_('I') + ',"เข้าร่วมกิจกรรม")'],
+      ['ตอบฟอร์มว่าเข้าร่วม (ฐานของทุกชีตสรุป)', '=COUNTIF(' + K + ',"เข้าร่วมกิจกรรม")'],
+      ['Check ระบุไม่เข้าร่วม แต่ตอบฟอร์มว่าเข้าร่วม', '=COUNTIFS(' + ec_('I') + ',"ไม่เข้าร่วม*",' + K + ',"เข้าร่วมกิจกรรม")'],
+      ['แจ้งเข้าร่วมแต่ยังไม่ตอบฟอร์ม', '=COUNTIF(' + ec_('R') + ',"❌*")']]],
+    ['ไซซ์เสื้อ → ชีต "สรุป 1 ไซซ์เสื้อ"', SIZES.map((x) => [x, cnt('L', lit(x))])],
+    ['อาหารเช้า → ชีต "สรุป 2 อาหารเช้า"', FOODS.map((x) => [x, cnt('M', lit(x))])],
+    ['แพ้อาหาร → ชีต "สรุป 3 แพ้อาหาร"', [['ระบุอาหารที่แพ้/ทานไม่ได้', '=SUMPRODUCT((' + J + ')*' + re(N, ALLERGY_PAT) + ')']]],
+    ['กิจกรรมเสริม → ชีต "สรุป 4 กิจกรรมเสริม"', [['ล่องแก่งเรือยาง (คน)', cnt('O', '"*ล่องแก่งเรือยาง*"')], ['ล่องเรือชมเขื่อน (คน)', cnt('O', '"*ล่องเรือชมสันเขื่อน*"')],
+      ['ยอดเงินรวม (บาท)', '=(COUNTIFS(' + O + ',"*ล่องแก่งเรือยาง*",' + K + ',"เข้าร่วมกิจกรรม")+COUNTIFS(' + O + ',"*ล่องเรือชมสันเขื่อน*",' + K + ',"เข้าร่วมกิจกรรม"))*' + ACT_PRICE]]],
+    ['การเดินทาง → ชีต "สรุป 5 การเดินทาง" / "สรุป 6 รถตู้"', [['เดินทางมาเอง', cnt('P', '"*ด้วยตนเอง*"')], ['รถตู้สายประจำ', cnt('P', '"*ขึ้นอยู่ประจำ*"')], ['ขอรถตู้ (ไม่เคยนั่งประจำ)', cnt('P', '"*ไม่เคย*"')]]]
+  ];
+  let r = 4;
+  blocks.forEach((b) => {
+    blockTitle_(sh0, r, b[0]); r++;
+    headerRow_(sh0, r, ['รายการ', 'จำนวน']); r++;
+    b[1].forEach((x) => { sh0.getRange(r, 1).setValue(x[0]); sh0.getRange(r, 2).setFormula(x[1]); r++; });
+    r += 1;
+  });
+  finishSheet_(sh0, 2);
+  try { ss.setActiveSheet(sh0); ss.moveActiveSheet(ss.getNumSheets() - 6); } catch (err) { /* ลำดับชีตไม่สำคัญ */ }
 }
