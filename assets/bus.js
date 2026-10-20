@@ -100,10 +100,14 @@
   }
   $('#convoy').innerHTML = CFG.buses.map(miniBus).join('');
 
+  const rankIcon = (r) => (r === 0 ? '📌' : r === 1 ? '⭐' : '🔁');
+  const rankText = (r) => (r === 0 ? 'ทีมงานจัดที่นั่ง' : 'อันดับ ' + r);
+
   // ---------- allocation (same rules as apps-script/bus-booking.gs) ----------
   function allocate(rows, capacity, openAt, closeAt) {
     const seats = {}; CFG.buses.forEach((b) => (seats[b.id] = []));
     const waitlist = []; const seen = new Set(); const log = [];
+    (CFG.reserved || []).forEach((p) => { if (seats[p.bus] && !seen.has(p.emp)) { seats[p.bus].push({ ...p, rank: 0, t: 0 }); seen.add(p.emp); } });
     rows.slice().sort((a, b) => a.t - b.t).forEach((r) => {
       if ((openAt && r.t < openAt) || (closeAt && r.t > closeAt) || seen.has(r.emp)) return;
       seen.add(r.emp);
@@ -197,8 +201,8 @@
         const s = list[i];
         if (!s) return `<span class="seat empty" style="${st}"></span>`;
         const ph = photos.get(s.emp);
-        return `<button class="seat taken${fresh.has(s.emp) ? ' pop' : ''}${ph ? ' has-photo' : ''}" style="${st}" data-emp="${esc(s.emp)}"${s.pic ? ' data-pic="1"' : ''} title="${esc(s.nick)} · ${esc(s.emp)}${s.section ? ' · ' + esc(s.section) : ''} · อันดับ ${s.rank}">
-          <span class="rk">${s.rank === 1 ? '⭐' : '🔁'}</span><span class="av">${ph ? `<img src="${ph}" alt="">` : avatar(s.emp, b.mood)}</span><span class="nm">${esc(s.nick)}</span></button>`;
+        return `<button class="seat taken${fresh.has(s.emp) ? ' pop' : ''}${ph ? ' has-photo' : ''}" style="${st}" data-emp="${esc(s.emp)}"${s.pic ? ' data-pic="1"' : ''} title="${esc(s.nick)} · ${esc(s.emp)}${s.section ? ' · ' + esc(s.section) : ''} · ${rankText(s.rank)}">
+          <span class="rk">${rankIcon(s.rank)}</span><span class="av">${ph ? `<img src="${ph}" alt="">` : avatar(s.emp, b.mood)}</span><span class="nm">${esc(s.nick)}</span></button>`;
       }).join('');
     });
     const wl = data.waitlist || [];
@@ -231,7 +235,7 @@
     const b = busById[btn.dataset.bus];
     const list = current.seats[b.id] || [];
     $('#pax-body').innerHTML = `<div class="pax-head"><span>${b.emoji}</span><h3>Bus ${b.id} · ${esc(b.name)} <small class="muted">(${list.length}/${capacity})</small></h3></div>
-      ${list.length ? `<ol class="pax-list">${list.map((p, i) => `<li>${photos.get(p.emp) ? `<img class="pax-ph" src="${photos.get(p.emp)}" alt="">` : avatar(p.emp, b.mood)}<div><b>${i + 1}. ${esc(p.nick)}</b><small>รหัส ${esc(p.emp)}${p.section ? ' · ' + esc(p.section) : ''} · ${p.rank === 1 ? '⭐ อันดับ 1' : '🔁 อันดับ 2'}</small></div></li>`).join('')}</ol>` : '<p class="muted">ยังไม่มีคนจอง</p>'}`;
+      ${list.length ? `<ol class="pax-list">${list.map((p, i) => `<li>${photos.get(p.emp) ? `<img class="pax-ph" src="${photos.get(p.emp)}" alt="">` : avatar(p.emp, b.mood)}<div><b>${i + 1}. ${esc(p.nick)}</b><small>รหัส ${esc(p.emp)}${p.section ? ' · ' + esc(p.section) : ''} · ${rankIcon(p.rank)} ${rankText(p.rank)}</small></div></li>`).join('')}</ol>` : '<p class="muted">ยังไม่มีคนจอง</p>'}`;
     dlg.showModal();
   });
   dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
@@ -248,7 +252,7 @@
       const i = list.findIndex((p) => p.emp === q || p.nick.toLowerCase() === q);
       if (i > -1) {
         const p = list[i];
-        out.innerHTML = `🎉 <b>${esc(p.nick)} (${esc(p.emp)}${p.section ? ' · ' + esc(p.section) : ''})</b> ได้นั่ง <b style="color:${b.color}">Bus ${b.id} ${b.emoji} ${esc(b.name)}</b> · ที่นั่งลำดับ ${i + 1} · ${p.rank === 1 ? 'ได้รถอันดับ 1 ⭐' : 'อันดับ 1 เต็ม ได้รถอันดับ 2 🔁'}`;
+        out.innerHTML = `🎉 <b>${esc(p.nick)} (${esc(p.emp)}${p.section ? ' · ' + esc(p.section) : ''})</b> ได้นั่ง <b style="color:${b.color}">Bus ${b.id} ${b.emoji} ${esc(b.name)}</b> · ที่นั่งลำดับ ${i + 1} · ${p.rank === 0 ? 'ทีมงานจัดที่นั่งให้ 📌' : p.rank === 1 ? 'ได้รถอันดับ 1 ⭐' : 'อันดับ 1 เต็ม ได้รถอันดับ 2 🔁'}`;
         const el = document.querySelector(`#bus-${b.id} .seat[data-emp="${CSS.escape(p.emp)}"]`);
         if (el) { el.classList.add('hit'); if (scroll) el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' }); }
         window.dispatchEvent(new CustomEvent('busfind', { detail: { q: p.emp, busId: b.id } }));
@@ -343,13 +347,13 @@
     clearInterval(simTimer); simTimer = null;
     $('#sim-play').textContent = '▶ เริ่มจำลองการจอง';
     $('#ticker').innerHTML = '';
-    render({ seats: {}, waitlist: [] });
+    render({ seats: allocate([], capacity).seats, waitlist: [] });
   }
   function simPlay() {
     if (simTimer) { clearInterval(simTimer); simTimer = null; $('#sim-play').textContent = '▶ เล่นต่อ'; return; }
     if (!simPlay.log || simPlay.i >= simPlay.log.length) {
       simPlay.log = allocate(mockRows(), capacity).log; simPlay.i = 0;
-      simPlay.state = { seats: Object.fromEntries(CFG.buses.map((b) => [b.id, []])), waitlist: [] };
+      simPlay.state = { seats: allocate([], capacity).seats, waitlist: [] };
     }
     $('#sim-play').textContent = '⏸ หยุด';
     document.getElementById('buses').scrollIntoView({ behavior: 'smooth' });

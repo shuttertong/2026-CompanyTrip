@@ -21,6 +21,16 @@ const CONFIG = {
   OPEN_AT: '2026-10-26T17:10:00+07:00',
   CLOSE_AT: '2026-10-30T17:00:00+07:00',
   CAPACITY: 45,
+  // ที่นั่งที่ทีมงานจัดไว้ล่วงหน้า (ไม่ต้องจองผ่านฟอร์ม · ถ้ากรอกฟอร์มมาจะไม่นับซ้ำ)
+  RESERVED: [
+    { emp: '1120', nick: 'YOSHIDA', section: 'MANAGEMENT', bus: 1 },
+    { emp: '1134', nick: 'SHIMIZU', section: 'SALES1', bus: 1 },
+    { emp: '0996', nick: 'MORI', section: 'SALES2', bus: 1 },
+    { emp: '1171', nick: 'KOBAYASHI', section: 'SALES5', bus: 1 },
+    { emp: '0993', nick: 'ALLEN', section: 'SALES3', bus: 1 },
+    { emp: '1173', nick: 'YIFANG', section: 'SALES3', bus: 1 },
+    { emp: '1186', nick: 'NEW', section: 'SALES3', bus: 1 }
+  ],
   BUSES: [
     { id: 1, emoji: '😴', name: 'บัสนอนระดับ VIP', tag: 'นอนยาวๆ ไม่มีใครรบกวน' },
     { id: 2, emoji: '🎈', name: 'บัสน้องแป้ง', tag: 'นั่งๆ นอนๆ มีกิจกรรม แป้งจัดให้' },
@@ -251,6 +261,11 @@ function allocate_(rows) {
   CONFIG.BUSES.forEach((b) => { seats[b.id] = []; });
   const waitlist = [];
   const seen = {};
+  (CONFIG.RESERVED || []).forEach((p) => {
+    if (!seats[p.bus] || seen[p.emp]) return;
+    seen[p.emp] = true;
+    seats[p.bus].push({ emp: p.emp, nick: p.nick, section: p.section, t: 0, c1: p.bus, c2: null, rank: 0 });
+  });
   rows.slice().sort((a, b) => a.t - b.t).forEach((r) => {
     if (r.t < open || r.t > close || !r.emp) return;
     if (seen[r.emp]) return;
@@ -287,7 +302,7 @@ function buildPayload_() {
   const emps = readEmployees_();
   const strip = (p) => {
     const e = emps[p.emp] || {};
-    return { emp: p.emp, nick: e.name || p.nick, section: e.section || '', pic: !!e.pic, rank: p.rank, t: p.t };
+    return { emp: p.emp, nick: e.name || p.nick, section: e.section || p.section || '', pic: !!e.pic, rank: p.rank, t: p.t };
   };
   return {
     updatedAt: new Date().toISOString(),

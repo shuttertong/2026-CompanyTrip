@@ -137,7 +137,7 @@
       <div class="sec-head">
         <p class="kicker">5 Buses</p>
         <h2>ผังที่นั่งรถทั้ง 5 คัน</h2>
-        <p class="sub">แตะที่หน้าการ์ตูนเพื่อดูชื่อ · ⭐ = ได้รถอันดับ 1 · 🔁 = ได้รถอันดับ 2</p>
+        <p class="sub">แตะที่หน้าการ์ตูนเพื่อดูชื่อ · ⭐ = ได้รถอันดับ 1 · 🔁 = ได้รถอันดับ 2 · 📌 = ทีมงานจัดที่นั่งให้</p>
       </div>
     </div>
     <div class="bus-row" id="bus-row"></div>
@@ -174,6 +174,16 @@
     openAt: "2026-10-26T17:10:00+07:00",
     closeAt: "2026-10-30T17:00:00+07:00",
     capacity: 45,
+    // ที่นั่งที่ทีมงานจัดไว้ล่วงหน้า (ไม่ต้องจองผ่านฟอร์ม · ถ้ากรอกฟอร์มมาจะไม่นับซ้ำ)
+    reserved: [
+      { emp: "1120", nick: "YOSHIDA", section: "MANAGEMENT", bus: 1 },
+      { emp: "1134", nick: "SHIMIZU", section: "SALES1", bus: 1 },
+      { emp: "0996", nick: "MORI", section: "SALES2", bus: 1 },
+      { emp: "1171", nick: "KOBAYASHI", section: "SALES5", bus: 1 },
+      { emp: "0993", nick: "ALLEN", section: "SALES3", bus: 1 },
+      { emp: "1173", nick: "YIFANG", section: "SALES3", bus: 1 },
+      { emp: "1186", nick: "NEW", section: "SALES3", bus: 1 }
+    ],
     buses: [
       { id: 1, emoji: "😴", name: "บัสนอนระดับ VIP", tag: "นอนยาวๆ ไม่มีใครรบกวน", color: "#6c8cff", mood: "sleep" },
       { id: 2, emoji: "🎈", name: "บัสน้องแป้ง", tag: "นั่งๆ นอนๆ มีกิจกรรม แป้งจัดให้", color: "#ff9f1c", mood: "sing" },
@@ -184,7 +194,7 @@
   };
 </script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script src="assets/bus.js?v=5"></script>
-<script type="module" src="assets/bus-3d.js?v=11"></script>
+<script src="assets/bus.js?v=6"></script>
+<script type="module" src="assets/bus-3d.js?v=12"></script>
 </body>
 </html>

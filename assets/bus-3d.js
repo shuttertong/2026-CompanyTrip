@@ -689,7 +689,7 @@ renderer.domElement.addEventListener('pointermove', (e) => {
   if (hit) {
     const p = hit.object.userData.pick.userData.p;
     tip.hidden = false; tip.style.left = (e.clientX - r.left + 12) + 'px'; tip.style.top = (e.clientY - r.top - 10) + 'px';
-    tip.textContent = `${p.nick} · ${p.emp}${p.section ? ' · ' + p.section : ''}${p.rank === 2 ? ' · อันดับ 2' : ''}`;
+    tip.textContent = `${p.nick} · ${p.emp}${p.section ? ' · ' + p.section : ''}${p.rank === 2 ? ' · อันดับ 2' : p.rank === 0 ? ' · ทีมงานจัดที่นั่ง' : ''}`;
     renderer.domElement.style.cursor = 'pointer';
   } else { tip.hidden = true; renderer.domElement.style.cursor = ''; }
 });
