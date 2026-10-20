@@ -29,7 +29,13 @@ const CONFIG = {
     { emp: '1171', nick: 'KOBAYASHI', section: 'SALES5', bus: 1 },
     { emp: '0993', nick: 'ALLEN', section: 'SALES3', bus: 1 },
     { emp: '1173', nick: 'YIFANG', section: 'SALES3', bus: 1 },
-    { emp: '1186', nick: 'SEAN', section: 'SALES3', bus: 1 }
+    { emp: '1186', nick: 'SEAN', section: 'SALES3', bus: 1 },
+    { emp: 'Driver1', nick: 'PING', section: 'PERSONNEL&GA', bus: 4 },
+    { emp: 'Driver2', nick: 'PON', section: 'PERSONNEL&GA', bus: 4 },
+    { emp: 'Driver3', nick: 'JAY', section: 'PERSONNEL&GA', bus: 4 },
+    { emp: 'Driver4', nick: 'WICH', section: 'PERSONNEL&GA', bus: 4 },
+    { emp: 'Driver6', nick: 'TOOM', section: 'PERSONNEL&GA', bus: 4 },
+    { emp: 'Driver7', nick: 'J', section: 'PERSONNEL&GA', bus: 4 }
   ],
   BUSES: [
     { id: 1, emoji: '😴', name: 'บัสนอนระดับ VIP', tag: 'นอนยาวๆ ไม่มีใครรบกวน' },
