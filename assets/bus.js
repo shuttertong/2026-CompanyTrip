@@ -271,7 +271,8 @@
   const pad = (n) => String(n).padStart(2, '0');
   function tickStatus() {
     const now = Date.now();
-    const isOpen = accepting !== null ? accepting && now < closeAt : now >= openAt && now < closeAt;
+    // ก่อน openAt ไม่ถือว่าเปิด แม้ฟอร์มจะเปิดไว้ทดสอบ (คำตอบก่อนเวลาไม่นับอยู่แล้ว)
+    const isOpen = now >= openAt && now < closeAt && accepting !== false;
     const pill = $('#status-pill'), cd = $('#bus-countdown'), btn = $('#book-btn');
     $('#rule-time').textContent = `เปิดจอง ${fmt(openAt)} – ปิด ${fmt(closeAt)} · ส่งนอกช่วงเวลาไม่นับ`;
     if (now < openAt && !isOpen) {
