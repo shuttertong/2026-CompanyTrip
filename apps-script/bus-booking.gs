@@ -35,7 +35,9 @@ const CONFIG = {
     { emp: 'Driver3', nick: 'JAY', section: 'PERSONNEL&GA', bus: 4 },
     { emp: 'Driver4', nick: 'WICH', section: 'PERSONNEL&GA', bus: 4 },
     { emp: 'Driver6', nick: 'TOOM', section: 'PERSONNEL&GA', bus: 4 },
-    { emp: 'Driver7', nick: 'J', section: 'PERSONNEL&GA', bus: 4 }
+    { emp: 'Driver7', nick: 'J', section: 'PERSONNEL&GA', bus: 4 },
+    { emp: '0643', nick: 'KIAT', section: 'PERSONNEL&GA', bus: 4 },
+    { emp: '1045', nick: 'OH', section: 'PERSONNEL&GA', bus: 4 }
   ],
   BUSES: [
     { id: 1, emoji: '😴', name: 'บัสนอนระดับ VIP', tag: 'นอนยาวๆ ไม่มีใครรบกวน' },
