@@ -402,17 +402,43 @@ function doGet(e) {
     }
     return ContentService.createTextOutput(JSON.stringify({ emp, src })).setMimeType(ContentService.MimeType.JSON);
   }
-  return ContentService.createTextOutput(cachedPayload_()).setMimeType(ContentService.MimeType.JSON);
+  let out;
+  try { out = cachedPayload_(); }
+  catch (err) { out = JSON.stringify({ error: 'busy', message: String(err && err.message || err) }); }
+  return ContentService.createTextOutput(out).setMimeType(ContentService.MimeType.JSON);
 }
 
+/**
+ * ข้อมูลที่นั่ง (cache 15 วินาที) — ทนคนเปิดพร้อมกันเยอะ ๆ:
+ * ล็อกให้สร้างใหม่ทีละคำขอ, ลองซ้ำเมื่อ Google Forms ตอบช้า/ปฏิเสธชั่วคราว และถ้ายังไม่ได้ ใช้ข้อมูลล่าสุดที่ดีแทน
+ */
 function cachedPayload_() {
   const cache = CacheService.getScriptCache();
   let json = cache.get('payload');
-  if (!json) {
-    json = JSON.stringify(buildPayload_());
-    cache.put('payload', json, 15);
+  if (json) return json;
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    json = cache.get('payload') || cache.get('payload_last');
+    if (json) return json;
+    return JSON.stringify(buildPayload_());
   }
-  return json;
+  try {
+    json = cache.get('payload');
+    if (json) return json;
+    for (let i = 0; ; i++) {
+      try { json = JSON.stringify(buildPayload_()); break; }
+      catch (err) { if (i >= 2) throw err; Utilities.sleep(800 * (i + 1)); }
+    }
+    cache.put('payload', json, 15);
+    cache.put('payload_last', json, 21600);
+    return json;
+  } catch (err) {
+    const last = cache.get('payload_last');
+    if (last) return last;
+    throw err;
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // ---------- สรุปผลแบบสำรวจหลัก แยกรายการเป็นชีต (สูตรอ้างอิงชีต "รายชื่อพนักงาน" — อัปเดตเอง) ----------

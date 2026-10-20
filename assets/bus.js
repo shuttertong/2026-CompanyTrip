@@ -358,6 +358,7 @@
     try {
       const res = await fetch(CFG.endpoint + (CFG.endpoint.includes('?') ? '&' : '?') + 't=' + Date.now());
       const d = await res.json();
+      if (!d.buses) throw new Error(d.error || 'bad payload');
       capacity = d.capacity || capacity;
       openAt = +new Date(d.openAt || CFG.openAt); closeAt = +new Date(d.closeAt || CFG.closeAt);
       accepting = typeof d.accepting === 'boolean' ? d.accepting : null;
@@ -373,7 +374,10 @@
       $('#updated-at').textContent = 'อัปเดตล่าสุด ' + new Date(d.updatedAt || Date.now()).toLocaleTimeString('th-TH');
       tickStatus();
     } catch (err) {
-      $('#ticker').textContent = 'โหลดข้อมูลการจองไม่สำเร็จ จะลองใหม่อัตโนมัติ';
+      // ระบบหลังบ้านไม่ว่างชั่วคราว: ลองใหม่เร็ว ๆ และคงข้อมูลเดิมไว้บนจอ
+      if (!known.size) $('#ticker').textContent = 'กำลังโหลดข้อมูลการจอง… (ลองใหม่อัตโนมัติ)';
+      clearTimeout(loadLive.retry);
+      loadLive.retry = setTimeout(loadLive, 4000 + Math.random() * 3000);
     }
   }
 
