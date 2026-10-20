@@ -282,6 +282,31 @@ function allocate_(rows) {
   return { seats, waitlist };
 }
 
+/**
+ * เขียนรายชื่อที่นั่งจองล่วงหน้า (CONFIG.RESERVED) ลงชีตคำตอบ ให้ทีมงานเห็นครบในที่เดียว (รันจาก editor · รันซ้ำได้ ไม่เพิ่มแถวซ้ำ)
+ * ระบบจัดที่นั่งอ่านคำตอบจากฟอร์มโดยตรง แถวเหล่านี้จึงไม่ถูกนับซ้ำ
+ */
+function writeReservedToSheet() {
+  const NOTE = '📌 ทีมงานจัดที่นั่งล่วงหน้า (ไม่ได้กรอกฟอร์ม)';
+  const ss = SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('SHEET_ID'));
+  const sh = ss.getSheets().find((x) => x.getFormUrl()) || ss.getSheets()[0];
+  const noteCol = 6;
+  if (!sh.getRange(1, noteCol).getValue()) sh.getRange(1, noteCol).setValue('หมายเหตุ').setFontWeight('bold');
+  const last = sh.getLastRow();
+  const have = new Set(last > 1 ? sh.getRange(2, 2, last - 1, 5).getDisplayValues()
+    .filter((r) => r[4] === NOTE).map((r) => String(r[0]).trim()) : []);
+  const busById = {}; CONFIG.BUSES.forEach((b) => { busById[b.id] = b; });
+  const now = new Date();
+  const rows = (CONFIG.RESERVED || []).filter((p) => !have.has(p.emp))
+    .map((p) => [now, p.emp, p.nick, busChoice_(busById[p.bus]), '', NOTE]);
+  if (!rows.length) { Logger.log('มีครบแล้ว ไม่ต้องเพิ่ม'); return; }
+  const start = sh.getLastRow() + 1;
+  sh.getRange(start, 2, rows.length, 1).setNumberFormat('@');
+  sh.getRange(start, 1, rows.length, noteCol).setValues(rows);
+  sh.getRange(start, 1, rows.length, noteCol).setBackground('#fff4d6');
+  Logger.log('เพิ่ม ' + rows.length + ' แถว ที่แถว ' + start + ' ในชีต ' + sh.getName());
+}
+
 function readRows_() {
   return getForm_().getResponses().map((res) => {
     const a = {};
