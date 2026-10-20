@@ -14,8 +14,9 @@
     for (const ch of String(s)) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619); }
     return h >>> 0;
   }
-  const KINDS = ['bear', 'cat', 'bunny', 'panda', 'chick', 'frog', 'pig', 'dog', 'fox', 'koala', 'mouse', 'hamster', 'penguin', 'tiger', 'unicorn', 'sheep'];
-  const NOMOUTH = new Set(['chick', 'pig', 'penguin']);
+  const KINDS = ['bear', 'cat', 'bunny', 'panda', 'chick', 'frog', 'pig', 'dog', 'fox', 'koala', 'mouse', 'hamster', 'penguin', 'tiger', 'unicorn', 'sheep', 'owl', 'lion', 'cow', 'monkey', 'raccoon'];
+  const NOMOUTH = new Set(['chick', 'pig', 'penguin', 'owl', 'cow']);
+  const DARKEYE = new Set(['panda', 'raccoon']);
   const TONES = [
     ['#ffd6a5', '#d9905a'], ['#ffe5b4', '#c98b4f'], ['#e9d5ff', '#9b6dd6'], ['#cdeafe', '#5b9bd5'],
     ['#ffd1dc', '#e87a9a'], ['#d8f3dc', '#5fae7b'], ['#fff1a8', '#d6a92c'], ['#f1dfd1', '#a9785a']
@@ -38,6 +39,11 @@
     if (kind === 'tiger') { face = '#ffc56b'; deep = '#e08a1e'; }
     if (kind === 'unicorn') { face = '#fff5fb'; deep = '#c9a3e6'; }
     if (kind === 'sheep') { face = '#f7e9d7'; deep = '#b89b7a'; }
+    if (kind === 'owl') { face = '#c8a27a'; deep = '#8b6a48'; }
+    if (kind === 'lion') { face = '#ffd28a'; deep = '#d98c2b'; }
+    if (kind === 'cow') { face = '#ffffff'; deep = '#6b6b6b'; }
+    if (kind === 'monkey') { face = '#b07a52'; deep = '#7a4f30'; }
+    if (kind === 'raccoon') { face = '#c3c7cf'; deep = '#6b7280'; }
     const delay = ((h >>> 9) % 40) / 10;
     let ears = '', top = '', extra = '', mouth = `<path d="M28.5 43.5q1.75 2.2 3.5 0q1.75 2.2 3.5 0" fill="none" stroke="${INK}" stroke-width="1.6" stroke-linecap="round"/>`;
     let ey = 35, ex1 = 25, ex2 = 39;
@@ -111,13 +117,34 @@
         top = `<g fill="#fff" stroke="#e5ddd0" stroke-width="1.2"><circle cx="16" cy="25" r="6"/><circle cx="48" cy="25" r="6"/><circle cx="20" cy="17" r="7"/><circle cx="44" cy="17" r="7"/><circle cx="32" cy="13" r="8"/></g>`;
         extra = `<ellipse cx="32" cy="41" rx="2.6" ry="1.8" fill="${INK}"/>`;
         break;
+      case 'owl':
+        ears = `<path d="M13 24 14 9 25 18Z" fill="${deep}"/><path d="M51 24 50 9 39 18Z" fill="${deep}"/>`;
+        extra = `<circle cx="25" cy="35" r="8" fill="#fff" stroke="${deep}" stroke-width="1.5"/><circle cx="39" cy="35" r="8" fill="#fff" stroke="${deep}" stroke-width="1.5"/><path d="M14 47q18 9 36 0" fill="none" stroke="${deep}" stroke-width="1.4" opacity=".5"/>`;
+        mouth = `<path d="M29.5 41h5l-2.5 4z" fill="#ffb020" stroke="#e08a00" stroke-width="1" stroke-linejoin="round"/>`;
+        break;
+      case 'lion':
+        ears = `<g fill="#e0913a" stroke="#c4741f" stroke-width="1"><circle cx="58.0" cy="36.0" r="7.5"/><circle cx="54.5" cy="49.0" r="7.5"/><circle cx="45.0" cy="58.5" r="7.5"/><circle cx="32.0" cy="62.0" r="7.5"/><circle cx="19.0" cy="58.5" r="7.5"/><circle cx="9.5" cy="49.0" r="7.5"/><circle cx="6.0" cy="36.0" r="7.5"/><circle cx="9.5" cy="23.0" r="7.5"/><circle cx="19.0" cy="13.5" r="7.5"/><circle cx="32.0" cy="10.0" r="7.5"/><circle cx="45.0" cy="13.5" r="7.5"/><circle cx="54.5" cy="23.0" r="7.5"/></g><circle cx="32" cy="36" r="25" fill="#e0913a"/><circle cx="16" cy="19" r="5.5" fill="${face}" stroke="${deep}" stroke-width="1.8"/><circle cx="48" cy="19" r="5.5" fill="${face}" stroke="${deep}" stroke-width="1.8"/>`;
+        extra = `<ellipse cx="32" cy="43" rx="8" ry="5.8" fill="#fff" opacity=".9"/><path d="M29 39.5h6l-3 2.8z" fill="#7a3d00"/>`;
+        break;
+      case 'cow':
+        ears = `<path d="M17 18q-2-9 3-11q-1 6 2 9z" fill="#fff3c4" stroke="#d6b75a" stroke-width="1"/><path d="M47 18q2-9-3-11q1 6-2 9z" fill="#fff3c4" stroke="#d6b75a" stroke-width="1"/><ellipse cx="10" cy="30" rx="7" ry="4" fill="#fff" stroke="${deep}" stroke-width="1.6" transform="rotate(-20 10 30)"/><ellipse cx="54" cy="30" rx="7" ry="4" fill="#fff" stroke="${deep}" stroke-width="1.6" transform="rotate(20 54 30)"/>`;
+        extra = `<path d="M17 24q5-8 12-4q2 7-5 9q-6 1-7-5z" fill="#3b3b3b"/><ellipse cx="45" cy="25" rx="4.5" ry="3.5" fill="#3b3b3b"/><ellipse cx="32" cy="46" rx="10" ry="6" fill="#ffc6d9" stroke="#e58aa9" stroke-width="1.2"/><ellipse cx="28.5" cy="46" rx="1.5" ry="2" fill="#c45c7f"/><ellipse cx="35.5" cy="46" rx="1.5" ry="2" fill="#c45c7f"/>`;
+        break;
+      case 'monkey':
+        ears = `<circle cx="11" cy="36" r="7.5" fill="${face}" stroke="${deep}" stroke-width="2"/><circle cx="53" cy="36" r="7.5" fill="${face}" stroke="${deep}" stroke-width="2"/><circle cx="11" cy="36" r="4" fill="#f2c9a5"/><circle cx="53" cy="36" r="4" fill="#f2c9a5"/>`;
+        extra = `<g fill="#f2d2b0"><circle cx="25" cy="34" r="8.5"/><circle cx="39" cy="34" r="8.5"/><ellipse cx="32" cy="44" rx="13" ry="8.5"/></g><circle cx="30.2" cy="41" r="1.1" fill="${INK}"/><circle cx="33.8" cy="41" r="1.1" fill="${INK}"/>`;
+        break;
+      case 'raccoon':
+        ears = `<path d="M13 27 15 9 28 18Z" fill="${face}" stroke="${deep}" stroke-width="2" stroke-linejoin="round"/><path d="M51 27 49 9 36 18Z" fill="${face}" stroke="${deep}" stroke-width="2" stroke-linejoin="round"/><path d="M17 22 18 14 23 18Z" fill="#3b4252"/><path d="M47 22 46 14 41 18Z" fill="#3b4252"/>`;
+        extra = `<path d="M12 35q4-8 13-6q7 2 7 6q0-4 7-6q9-2 13 6q-4 7-13 6q-7-1-7-5q0 4-7 5q-9 1-13-6z" fill="#3b4252"/><ellipse cx="32" cy="44" rx="8" ry="5.5" fill="#fff"/><ellipse cx="32" cy="41.5" rx="2.6" ry="1.8" fill="${INK}"/>`;
+        break;
     }
 
     const eyes = mood === 'sleep'
-      ? `<g><path d="M${ex1 - 3.5} ${ey}q3.5 3 7 0M${ex2 - 3.5} ${ey}q3.5 3 7 0" fill="none" stroke="${kind === 'panda' ? '#fff' : INK}" stroke-width="1.8" stroke-linecap="round"/></g>`
+      ? `<g><path d="M${ex1 - 3.5} ${ey}q3.5 3 7 0M${ex2 - 3.5} ${ey}q3.5 3 7 0" fill="none" stroke="${DARKEYE.has(kind) ? '#fff' : INK}" stroke-width="1.8" stroke-linecap="round"/></g>`
       : mood === 'laugh'
-        ? `<g><path d="M${ex1 - 3.5} ${ey + 1}q3.5 -4 7 0M${ex2 - 3.5} ${ey + 1}q3.5 -4 7 0" fill="none" stroke="${kind === 'panda' ? '#fff' : INK}" stroke-width="1.8" stroke-linecap="round"/></g>`
-        : `<g class="eyes"><circle cx="${ex1}" cy="${ey}" r="3.2" fill="${kind === 'panda' ? '#fff' : INK}"/><circle cx="${ex2}" cy="${ey}" r="3.2" fill="${kind === 'panda' ? '#fff' : INK}"/><circle cx="${ex1 + 1}" cy="${ey - 1.2}" r="1.1" fill="${kind === 'panda' ? INK : '#fff'}"/><circle cx="${ex2 + 1}" cy="${ey - 1.2}" r="1.1" fill="${kind === 'panda' ? INK : '#fff'}"/></g>`;
+        ? `<g><path d="M${ex1 - 3.5} ${ey + 1}q3.5 -4 7 0M${ex2 - 3.5} ${ey + 1}q3.5 -4 7 0" fill="none" stroke="${DARKEYE.has(kind) ? '#fff' : INK}" stroke-width="1.8" stroke-linecap="round"/></g>`
+        : `<g class="eyes"><circle cx="${ex1}" cy="${ey}" r="3.2" fill="${DARKEYE.has(kind) ? '#fff' : INK}"/><circle cx="${ex2}" cy="${ey}" r="3.2" fill="${DARKEYE.has(kind) ? '#fff' : INK}"/><circle cx="${ex1 + 1}" cy="${ey - 1.2}" r="1.1" fill="${DARKEYE.has(kind) ? INK : '#fff'}"/><circle cx="${ex2 + 1}" cy="${ey - 1.2}" r="1.1" fill="${DARKEYE.has(kind) ? INK : '#fff'}"/></g>`;
     if (mood === 'sing' && !NOMOUTH.has(kind)) mouth = `<ellipse cx="32" cy="45" rx="3" ry="3.6" fill="#e2445c"/>`;
     if (mood === 'laugh' && !NOMOUTH.has(kind)) mouth = `<path d="M26 42h12q-1 7-6 7t-6-7z" fill="#e2445c" stroke="${INK}" stroke-width="1.2" stroke-linejoin="round"/>`;
     if (mood === 'luck' && !NOMOUTH.has(kind)) mouth = `<path d="M27 42.5q5 5 10 0" fill="#fff" stroke="${INK}" stroke-width="1.5" stroke-linecap="round"/>`;
@@ -125,7 +152,7 @@
       : mood === 'luck' ? `<g transform="rotate(14 50 50)"><rect x="42" y="40" width="14" height="19" rx="2.5" fill="#fff" stroke="#2b2d42" stroke-width="1.2"/><path d="M49 45l3 4.5-3 4.5-3-4.5z" fill="#e2445c"/></g>` : '';
 
     // ของแต่งน่ารัก ๆ (ครึ่งหนึ่งของตัวการ์ตูนจะได้ 1 ชิ้น)
-    const dark = kind === 'panda' ? '#fff' : INK;
+    const dark = DARKEYE.has(kind) ? '#fff' : INK;
     const acc = [
       `<g transform="translate(46 17)"><path d="M0 0-7.5-5v10zM0 0l7.5-5v10z" fill="#ff5d8f" stroke="#fff" stroke-width=".8" stroke-linejoin="round"/><circle r="2.4" fill="#ff8fab" stroke="#fff" stroke-width=".8"/></g>`,
       `<g transform="translate(17 19)">${[0, 72, 144, 216, 288].map((a) => `<circle cx="${(3.4 * Math.cos(a * Math.PI / 180)).toFixed(2)}" cy="${(3.4 * Math.sin(a * Math.PI / 180)).toFixed(2)}" r="2.8" fill="#ffd6e7" stroke="#fff" stroke-width=".6"/>`).join('')}<circle r="2" fill="#ffd23f"/></g>`,
