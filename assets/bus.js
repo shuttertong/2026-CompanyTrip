@@ -314,6 +314,9 @@
       const fresh = new Set(all.filter((e) => known.size && !known.has(e)));
       known = new Set(all);
       render({ seats, waitlist: d.waitlist || [] }, fresh);
+      const tk = $('#ticker');
+      if (d.testMode) tk.innerHTML = '🧪 <b>รอบซ้อมจอง</b> — ที่นั่งที่เห็นตอนนี้เป็นผลทดสอบ <b>ไม่นับจริง</b> · ของจริงเปิด ' + fmt(openAt);
+      else if (tk.textContent.startsWith('🧪')) tk.innerHTML = '';
       $('#updated-at').textContent = 'อัปเดตล่าสุด ' + new Date(d.updatedAt || Date.now()).toLocaleTimeString('th-TH');
       tickStatus();
     } catch (err) {

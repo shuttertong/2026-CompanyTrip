@@ -262,8 +262,11 @@ function picFor_(emp) {
   return src.length < 400000 ? src : '';
 }
 
-/** จัดที่นั่ง: ใครส่งก่อนได้ก่อน อันดับ 1 เต็ม → อันดับ 2 → รอจัดสรร */
-function allocate_(rows) {
+/**
+ * จัดที่นั่ง: ใครส่งก่อนได้ก่อน อันดับ 1 เต็ม → อันดับ 2 → รอจัดสรร
+ * testing = ฟอร์มเปิดไว้ทดสอบก่อน OPEN_AT → แสดงคำตอบก่อนเวลาด้วย (พอถึง OPEN_AT จะกลับไปนับเฉพาะในช่วงเวลาเอง)
+ */
+function allocate_(rows, testing) {
   const open = +new Date(CONFIG.OPEN_AT);
   const close = +new Date(CONFIG.CLOSE_AT);
   const seats = {};
@@ -276,7 +279,7 @@ function allocate_(rows) {
     seats[p.bus].push({ emp: p.emp, nick: p.nick, section: p.section, t: 0, c1: p.bus, c2: null, rank: 0 });
   });
   rows.slice().sort((a, b) => a.t - b.t).forEach((r) => {
-    if (r.t < open || r.t > close || !r.emp) return;
+    if ((!testing && r.t < open) || r.t > close || !r.emp) return;
     if (seen[r.emp]) return;
     seen[r.emp] = true;
     const p = { emp: r.emp, nick: r.nick, t: r.t, c1: r.c1, c2: r.c2 };
@@ -332,7 +335,9 @@ function readRows_() {
 
 function buildPayload_() {
   const form = getForm_();
-  const { seats, waitlist } = allocate_(readRows_());
+  const accepting = form.isAcceptingResponses();
+  const testing = accepting && Date.now() < +new Date(CONFIG.OPEN_AT);
+  const { seats, waitlist } = allocate_(readRows_(), testing);
   const emps = readEmployees_();
   const strip = (p) => {
     const e = emps[p.emp] || {};
@@ -343,7 +348,8 @@ function buildPayload_() {
     openAt: CONFIG.OPEN_AT,
     closeAt: CONFIG.CLOSE_AT,
     capacity: CONFIG.CAPACITY,
-    accepting: form.isAcceptingResponses(),
+    accepting: accepting,
+    testMode: testing,
     formUrl: form.getPublishedUrl(),
     buses: CONFIG.BUSES.map((b) => Object.assign({}, b, { seats: seats[b.id].map(strip) })),
     waitlist: waitlist.map((p) => ({ emp: p.emp, nick: (emps[p.emp] || {}).name || p.nick, section: (emps[p.emp] || {}).section || '', t: p.t }))
