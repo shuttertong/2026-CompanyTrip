@@ -618,7 +618,7 @@ function applyTheme(b) {
   cabinLight.intensity = b.mood === 'sleep' ? 1.6 : party ? 1.2 : 3;
   cabinFill.forEach((l) => { l.intensity = b.mood === 'sleep' ? .8 : party ? 1 : 2.2; l.color.set(b.mood === 'sleep' ? 0x7d8fe0 : 0xfff0dc); });
   setSky(b.mood);
-  const screenText = { sleep: '😴 Good Night', sing: '🎤 ♪ ร้องเลย ♪', dance: '🪩 VIP DANCE', laugh: '😂 888888', luck: '🎰 888 🎲', party: '🎉 PARTY BUS' }[b.mood];
+  const screenText = { sleep: '😴 VIP Sleep', sing: '🎈 แป้งจัดให้', dance: '🪩 DANCE', laugh: '😂 888888', luck: '🎰 888 🎲', party: '🎉 PARTY BUS' }[b.mood];
   drawScreen(screenText, b.color);
 }
 
