@@ -29,7 +29,7 @@ const CONFIG = {
     { emp: '1171', nick: 'KOBAYASHI', section: 'SALES5', bus: 1 },
     { emp: '0993', nick: 'ALLEN', section: 'SALES3', bus: 1 },
     { emp: '1173', nick: 'YIFANG', section: 'SALES3', bus: 1 },
-    { emp: '1186', nick: 'NEW', section: 'SALES3', bus: 1 }
+    { emp: '1186', nick: 'SEAN', section: 'SALES3', bus: 1 }
   ],
   BUSES: [
     { id: 1, emoji: '😴', name: 'บัสนอนระดับ VIP', tag: 'นอนยาวๆ ไม่มีใครรบกวน' },
