@@ -417,10 +417,14 @@ function cachedPayload_() {
   let json = cache.get('payload');
   if (json) return json;
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(10000)) {
+  // มีคำขออื่นกำลังสร้างอยู่: ส่งข้อมูลล่าสุดที่ดีทันที (ไม่ต้องรอ) ถ้าไม่มีค่อยรอคิว
+  if (!lock.tryLock(1500)) {
     json = cache.get('payload') || cache.get('payload_last');
     if (json) return json;
-    return JSON.stringify(buildPayload_());
+    if (!lock.tryLock(15000)) return JSON.stringify(buildPayload_());
+    lock.releaseLock();
+    json = cache.get('payload') || cache.get('payload_last');
+    return json || JSON.stringify(buildPayload_());
   }
   try {
     json = cache.get('payload');
