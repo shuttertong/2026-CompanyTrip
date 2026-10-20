@@ -127,7 +127,7 @@
         extra = `<ellipse cx="32" cy="43" rx="8" ry="5.8" fill="#fff" opacity=".9"/><path d="M29 39.5h6l-3 2.8z" fill="#7a3d00"/>`;
         break;
       case 'cow':
-        ears = `<path d="M17 18q-2-9 3-11q-1 6 2 9z" fill="#fff3c4" stroke="#d6b75a" stroke-width="1"/><path d="M47 18q2-9-3-11q1 6-2 9z" fill="#fff3c4" stroke="#d6b75a" stroke-width="1"/><ellipse cx="10" cy="30" rx="7" ry="4" fill="#fff" stroke="${deep}" stroke-width="1.6" transform="rotate(-20 10 30)"/><ellipse cx="54" cy="30" rx="7" ry="4" fill="#fff" stroke="${deep}" stroke-width="1.6" transform="rotate(20 54 30)"/>`;
+        ears = `<ellipse cx="10" cy="30" rx="7" ry="4" fill="#fff" stroke="${deep}" stroke-width="1.6" transform="rotate(-20 10 30)"/><ellipse cx="54" cy="30" rx="7" ry="4" fill="#fff" stroke="${deep}" stroke-width="1.6" transform="rotate(20 54 30)"/>`;
         extra = `<path d="M17 24q5-8 12-4q2 7-5 9q-6 1-7-5z" fill="#3b3b3b"/><ellipse cx="45" cy="25" rx="4.5" ry="3.5" fill="#3b3b3b"/><ellipse cx="32" cy="46" rx="10" ry="6" fill="#ffc6d9" stroke="#e58aa9" stroke-width="1.2"/><ellipse cx="28.5" cy="46" rx="1.5" ry="2" fill="#c45c7f"/><ellipse cx="35.5" cy="46" rx="1.5" ry="2" fill="#c45c7f"/>`;
         break;
       case 'monkey':
@@ -144,7 +144,7 @@
       ? `<g><path d="M${ex1 - 3.5} ${ey}q3.5 3 7 0M${ex2 - 3.5} ${ey}q3.5 3 7 0" fill="none" stroke="${DARKEYE.has(kind) ? '#fff' : INK}" stroke-width="1.8" stroke-linecap="round"/></g>`
       : mood === 'laugh'
         ? `<g><path d="M${ex1 - 3.5} ${ey + 1}q3.5 -4 7 0M${ex2 - 3.5} ${ey + 1}q3.5 -4 7 0" fill="none" stroke="${DARKEYE.has(kind) ? '#fff' : INK}" stroke-width="1.8" stroke-linecap="round"/></g>`
-        : `<g class="eyes"><circle cx="${ex1}" cy="${ey}" r="3.2" fill="${DARKEYE.has(kind) ? '#fff' : INK}"/><circle cx="${ex2}" cy="${ey}" r="3.2" fill="${DARKEYE.has(kind) ? '#fff' : INK}"/><circle cx="${ex1 + 1}" cy="${ey - 1.2}" r="1.1" fill="${DARKEYE.has(kind) ? INK : '#fff'}"/><circle cx="${ex2 + 1}" cy="${ey - 1.2}" r="1.1" fill="${DARKEYE.has(kind) ? INK : '#fff'}"/></g>`;
+        : `<g class="eyes">${[ex1, ex2].map((x) => `<circle cx="${x}" cy="${ey}" r="${DARKEYE.has(kind) ? 3.3 : 4.1}" fill="${DARKEYE.has(kind) ? '#fff' : INK}"/><circle cx="${x + 1.2}" cy="${ey - 1.3}" r="${DARKEYE.has(kind) ? 1.2 : 1.6}" fill="${DARKEYE.has(kind) ? INK : '#fff'}"/><circle cx="${x - 1.3}" cy="${ey + 1.4}" r=".75" fill="${DARKEYE.has(kind) ? INK : '#fff'}"/>`).join('')}</g>`;
     if (mood === 'sing' && !NOMOUTH.has(kind)) mouth = `<ellipse cx="32" cy="45" rx="3" ry="3.6" fill="#e2445c"/>`;
     if (mood === 'laugh' && !NOMOUTH.has(kind)) mouth = `<path d="M26 42h12q-1 7-6 7t-6-7z" fill="#e2445c" stroke="${INK}" stroke-width="1.2" stroke-linejoin="round"/>`;
     if (mood === 'luck' && !NOMOUTH.has(kind)) mouth = `<path d="M27 42.5q5 5 10 0" fill="#fff" stroke="${INK}" stroke-width="1.5" stroke-linecap="round"/>`;
@@ -160,8 +160,16 @@
       `<path transform="translate(46 19)" d="M0-5.5 1.6-1.7 5.7-1.7 2.4.8 3.5 4.8 0 2.4-3.5 4.8-2.4.8-5.7-1.7-1.6-1.7z" fill="#ffd23f" stroke="#fff" stroke-width=".8" stroke-linejoin="round"/>`,
       `<g transform="translate(46 18) rotate(20)"><path d="M0 3C-5-1-4-6 0-3.5 4-6 5-1 0 3z" fill="#ff4f6d" stroke="#fff" stroke-width=".8"/></g>`
     ][(h >>> 13) % 10] || '';
+    // เบบี๋: จุกนม (บางตัว) และผมจุกหนึ่งเส้นบนหัว
+    let accOut = acc;
+    if ((h >>> 13) % 10 === 5 && !NOMOUTH.has(kind) && !['sing', 'laugh', 'luck'].includes(mood)) {
+      mouth = `<g><ellipse cx="32" cy="45.5" rx="6" ry="3.6" fill="#8fd3ff" stroke="#fff" stroke-width="1"/><circle cx="32" cy="45.5" r="2" fill="#5bb8f0"/><circle cx="32" cy="49.6" r="2.6" fill="none" stroke="#ffd23f" stroke-width="1.4"/></g>`;
+      accOut = '';
+    }
+    const curl = ['unicorn', 'sheep', 'chick', 'lion'].includes(kind) || mood === 'party' ? ''
+      : `<path d="M32 17.5q-3.2-5 .6-7.3q3.8-1.2 3.3 2.4q-.6 2.2-2.9 1.4" fill="none" stroke="${deep}" stroke-width="1.9" stroke-linecap="round"/>`;
 
-    return `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="--d:-${delay}s" aria-hidden="true">${ears}<circle cx="32" cy="36" r="21" fill="${face}" stroke="${deep}" stroke-width="2"/>${top}${extra}${eyes}<circle cx="19.5" cy="42" r="3.4" fill="#ff8fab" opacity=".55"/><circle cx="44.5" cy="42" r="3.4" fill="#ff8fab" opacity=".55"/>${mouth}${acc}${prop}</svg>`;
+    return `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="--d:-${delay}s" aria-hidden="true">${ears}<ellipse cx="32" cy="36.5" rx="22" ry="20.8" fill="${face}" stroke="${deep}" stroke-width="2"/>${curl}${top}${extra}${eyes}<ellipse cx="18.5" cy="43" rx="4.6" ry="3.4" fill="#ff8fab" opacity=".6"/><ellipse cx="45.5" cy="43" rx="4.6" ry="3.4" fill="#ff8fab" opacity=".6"/>${mouth}${accOut}${prop}</svg>`;
   }
 
   // ---------- side-view mini bus for the hero convoy ----------
