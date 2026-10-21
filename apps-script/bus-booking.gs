@@ -319,6 +319,31 @@ function writeReservedToSheet() {
   Logger.log('เพิ่ม ' + rows.length + ' แถว ที่แถว ' + start + ' ในชีต ' + sh.getName());
 }
 
+/**
+ * จบรอบซ้อม: ปิดรับคำตอบ และติดป้าย "รอบซ้อม" ที่คำตอบก่อน OPEN_AT ในชีต (ไม่ลบข้อมูล)
+ * ทริกเกอร์ openBooking จะเปิดฟอร์มเองตาม OPEN_AT · คำตอบก่อน OPEN_AT ไม่ถูกนับอยู่แล้ว
+ */
+function endTest() {
+  closeBooking();
+  const NOTE = '🧪 รอบซ้อม (ไม่นับ)';
+  const open = +new Date(CONFIG.OPEN_AT);
+  const ss = SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('SHEET_ID'));
+  const sh = ss.getSheets().find((x) => x.getFormUrl()) || ss.getSheets()[0];
+  const last = sh.getLastRow();
+  if (last < 2) return;
+  const rng = sh.getRange(2, 1, last - 1, 6);
+  const vals = rng.getValues();
+  let n = 0;
+  vals.forEach((r, i) => {
+    if (r[0] instanceof Date && +r[0] < open && !String(r[5]).trim()) {
+      sh.getRange(i + 2, 6).setValue(NOTE);
+      sh.getRange(i + 2, 1, 1, 6).setFontColor('#9a9a9a');
+      n++;
+    }
+  });
+  Logger.log('ปิดฟอร์มแล้ว · ติดป้ายรอบซ้อม ' + n + ' แถว');
+}
+
 function readRows_() {
   return getForm_().getResponses().map((res) => {
     const a = {};
