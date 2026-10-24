@@ -360,7 +360,8 @@
   function tickStatus() {
     const now = Date.now();
     // ก่อน openAt ไม่ถือว่าเปิด แม้ฟอร์มจะเปิดไว้ทดสอบ (คำตอบก่อนเวลาไม่นับอยู่แล้ว)
-    const isOpen = now >= openAt && now < closeAt && accepting !== false;
+    const inWindow = now >= openAt && now < closeAt;
+    const isOpen = inWindow && accepting !== false;
     const pill = $('#status-pill'), cd = $('#bus-countdown'), btn = $('#book-btn');
     $('#rule-time').textContent = `เปิดจอง ${fmt(openAt)} – ปิด ${fmt(closeAt)} · ส่งนอกช่วงเวลาไม่นับ`;
     if (now < openAt && !isOpen) {
@@ -377,6 +378,12 @@
       pill.className = 'pill open'; pill.textContent = '● เปิดจองแล้ว';
       $('#status-title').textContent = 'เปิดจองแล้ว รีบเลย!';
       $('#status-sub').textContent = `ปิดจอง ${fmt(closeAt)}`;
+      cd.hidden = true; btn.hidden = !formUrl; if (formUrl) btn.href = formUrl;
+    } else if (inWindow) {
+      // ถึงเวลาแล้วแต่ฟอร์มยังไม่เปิด (ตัวตั้งเวลาของ Google อาจช้าไม่กี่นาที) — ไม่ขึ้นว่าปิดจอง
+      pill.className = 'pill soon'; pill.textContent = '⏳ กำลังเปิด';
+      $('#status-title').textContent = 'กำลังเปิดระบบจอง…';
+      $('#status-sub').textContent = 'อีกสักครู่ หน้านี้อัปเดตเอง · ถ้าฟอร์มขึ้นว่ายังไม่เปิด ให้รีเฟรชฟอร์มอีกครั้ง';
       cd.hidden = true; btn.hidden = !formUrl; if (formUrl) btn.href = formUrl;
     } else {
       pill.className = 'pill closed'; pill.textContent = 'ปิดจองแล้ว';
@@ -471,7 +478,18 @@
 
   if (CFG.endpoint && !/[?&]demo\b/.test(location.search)) {
     loadLive();
-    setInterval(loadLive, 20000);
+    // อัปเดตทุก ~20 วินาที (เร็วขึ้นเป็นทุก 5 วินาทีช่วงรอฟอร์มเปิด) · หยุดตอนสลับไปแท็บอื่น
+    const poll = () => {
+      const now = Date.now();
+      const waiting = now >= openAt && now < closeAt && accepting === false;
+      if (!document.hidden) loadLive();
+      setTimeout(poll, waiting ? 5000 : 18000 + Math.random() * 6000);
+    };
+    setTimeout(poll, 20000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) loadLive(); });
+    // ดึงข้อมูลทันทีตอนถึงเวลาเปิดจอง
+    const untilOpen = openAt - Date.now();
+    if (untilOpen > 0 && untilOpen < 2147483647) setTimeout(() => { tickStatus(); loadLive(); }, untilOpen + 1500);
     $('#demo-link').hidden = false;
   } else {
     $('#demo-bar').hidden = false;

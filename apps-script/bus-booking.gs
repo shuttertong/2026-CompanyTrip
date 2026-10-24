@@ -323,7 +323,13 @@ function writeReservedToSheet() {
  * จบรอบซ้อม: ปิดรับคำตอบ และติดป้าย "รอบซ้อม" ที่คำตอบก่อน OPEN_AT ในชีต (ไม่ลบข้อมูล)
  * ทริกเกอร์ openBooking จะเปิดฟอร์มเองตาม OPEN_AT · คำตอบก่อน OPEN_AT ไม่ถูกนับอยู่แล้ว
  */
+function startTest() {
+  PropertiesService.getScriptProperties().setProperty('TEST_MODE', '1');
+  openBooking();
+}
+
 function endTest() {
+  PropertiesService.getScriptProperties().deleteProperty('TEST_MODE');
   closeBooking();
   const NOTE = '🧪 รอบซ้อม (ไม่นับ)';
   const open = +new Date(CONFIG.OPEN_AT);
@@ -361,7 +367,9 @@ function readRows_() {
 function buildPayload_() {
   const form = getForm_();
   const accepting = form.isAcceptingResponses();
-  const testing = accepting && Date.now() < +new Date(CONFIG.OPEN_AT);
+  // โหมดซ้อม: เฉพาะตอนสั่ง startTest เท่านั้น (ฟอร์มเปิดก่อนเวลาเพราะเหตุอื่นจะไม่แสดงผลซ้อม)
+  const testing = accepting && Date.now() < +new Date(CONFIG.OPEN_AT) &&
+    PropertiesService.getScriptProperties().getProperty('TEST_MODE') === '1';
   const { seats, waitlist } = allocate_(readRows_(), testing);
   const emps = readEmployees_();
   const strip = (p) => {
